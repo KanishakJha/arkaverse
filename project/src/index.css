@@ -197,3 +197,10 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* ArkaVerse Text Protection Rule */
+.protected-content {
+  -webkit-user-select: none;  /* Safari */
+  -ms-user-select: none;      /* IE 10/11 */
+  user-select: none;          /* Standard Chrome/Firefox */
+}
