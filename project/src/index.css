@@ -1,0 +1,199 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ─── ArkaVerse AMOLED Dark Theme ──────────────────────────────────────── */
+:root {
+  --radius: 0.625rem;
+
+  /* Pure AMOLED black canvas */
+  --background: oklch(0 0 0);
+  --foreground: oklch(0.97 0 0);
+
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.97 0 0);
+
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+
+  --primary: oklch(0.97 0 0);
+  --primary-foreground: oklch(0.05 0 0);
+
+  --secondary: oklch(0.14 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+
+  --muted: oklch(0.13 0 0);
+  --muted-foreground: oklch(0.55 0 0);
+
+  --accent: oklch(0.16 0 0);
+  --accent-foreground: oklch(0.97 0 0);
+
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.6 0 0);
+
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+
+  --sidebar: oklch(0.07 0 0);
+  --sidebar-foreground: oklch(0.97 0 0);
+  --sidebar-primary: oklch(0.97 0 0);
+  --sidebar-primary-foreground: oklch(0.05 0 0);
+  --sidebar-accent: oklch(0.14 0 0);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.5 0 0);
+
+  /* Solar Aura dynamic vars — updated by JS */
+  --aura-1: #F59E0B;
+  --aura-2: #EC4899;
+  --aura-3: #F97316;
+}
+
+/* ─── Solar Aura Keyframes ──────────────────────────────────────────────── */
+@keyframes aura-breathe-a {
+  0%, 100% { opacity: 0.18; transform: scale(1) translate(0, 0); }
+  33%       { opacity: 0.30; transform: scale(1.08) translate(-15px, 20px); }
+  66%       { opacity: 0.22; transform: scale(0.95) translate(12px, -10px); }
+}
+
+@keyframes aura-breathe-b {
+  0%, 100% { opacity: 0.14; transform: scale(1.05) translate(0, 0) rotate(0deg); }
+  40%       { opacity: 0.25; transform: scale(0.9) translate(20px, 15px) rotate(8deg); }
+  80%       { opacity: 0.20; transform: scale(1.12) translate(-8px, -18px) rotate(-4deg); }
+}
+
+@keyframes aura-breathe-c {
+  0%, 100% { opacity: 0.12; transform: scale(0.95) translate(10px, -10px); }
+  50%       { opacity: 0.22; transform: scale(1.1) translate(-10px, 10px); }
+}
+
+@keyframes aura-pulse-ring {
+  0%, 100% { opacity: 0.06; transform: scale(1); }
+  50%       { opacity: 0.12; transform: scale(1.05); }
+}
+
+@keyframes float-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes progress-spin {
+  from { stroke-dashoffset: 283; }
+  to   { stroke-dashoffset: var(--target-offset, 0); }
+}
+
+/* ─── Aura Orb Utilities ────────────────────────────────────────────────── */
+.aura-orb-a { animation: aura-breathe-a 9s ease-in-out infinite; }
+.aura-orb-b { animation: aura-breathe-b 13s ease-in-out infinite; }
+.aura-orb-c { animation: aura-breathe-c 7s ease-in-out infinite; }
+.aura-pulse-ring { animation: aura-pulse-ring 4s ease-in-out infinite; }
+
+/* ─── Glassmorphism Panels ──────────────────────────────────────────────── */
+.glass {
+  background: oklch(1 0 0 / 4%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid oklch(1 0 0 / 8%);
+}
+
+.glass-strong {
+  background: oklch(1 0 0 / 7%);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid oklch(1 0 0 / 12%);
+}
+
+/* ─── Book Card Holographic Hover ───────────────────────────────────────── */
+.book-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease,
+              border-color 0.3s ease;
+}
+.book-card:hover {
+  transform: translateY(-6px) scale(1.025);
+}
+
+/* ─── Reader Typography Modes ───────────────────────────────────────────── */
+.reader-sans     { font-family: system-ui, -apple-system, sans-serif; }
+.reader-serif    { font-family: Georgia, 'Times New Roman', serif; letter-spacing: 0.01em; }
+.reader-focus    { font-family: system-ui, sans-serif; letter-spacing: 0.02em; word-spacing: 0.1em; }
+.reader-dyslexia { font-family: Arial, sans-serif; letter-spacing: 0.05em; word-spacing: 0.2em; line-height: 2; }
+
+/* ─── Float-up entrance animation ──────────────────────────────────────── */
+.animate-float-up { animation: float-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ─── Kinetic text highlight ────────────────────────────────────────────── */
+.kinetic-active {
+  color: oklch(0.97 0 0);
+  text-shadow: 0 0 14px var(--aura-1);
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+.kinetic-inactive {
+  color: oklch(0.38 0 0);
+  transition: color 0.6s ease;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar             { width: 4px; height: 4px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       { background: oklch(1 0 0 / 15%); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 25%); }
+
+/* ─── Global Base ───────────────────────────────────────────────────────── */
+@layer base {
+  * { @apply border-border; }
+  html { color-scheme: dark; }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
