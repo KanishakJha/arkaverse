@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from './contexts/AppContext';
 import { SolarAura } from './components/layout/SolarAura';
 import { AppHeader } from './components/layout/AppHeader';
@@ -10,15 +10,15 @@ import { AdminPage } from './pages/AdminPage';
 
 export function App() {
   const { route } = useApp();
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
+  // 1. Anti-Copy and Security Protection
   useEffect(() => {
-    // 1. Right-Click block karne ke liye
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       alert("ArkaVerse Content is Protected!");
     };
 
-    // 2. Ctrl+C, Ctrl+S, Ctrl+U aur F12 shortcuts block karne ke liye
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && (e.key === 'c' || e.key === 's' || e.key === 'u' || e.key === 'C' || e.key === 'S' || e.key === 'U')) {
         e.preventDefault();
@@ -40,6 +40,21 @@ export function App() {
     };
   }, []);
 
+  // 2. Admin Page Password Lock
+  useEffect(() => {
+    if (route.page === 'admin' && !isAdminAuthenticated) {
+      // Yahan aap apna manpasand secret password badal sakte ho (Abhi 'ArkaAdmin123' rakha hai)
+      const password = prompt("Enter Secret Admin Password to Access Showroom:");
+      
+      if (password === "ArkaAdmin123") {
+        setIsAdminAuthenticated(true);
+      } else {
+        alert("Wrong Password! Access Denied.");
+        window.location.href = "/"; // Galat password par home par bhej dega
+      }
+    }
+  }, [route.page, isAdminAuthenticated]);
+
   return (
     <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden">
       <SolarAura />
@@ -48,7 +63,17 @@ export function App() {
       <main className="relative z-10">
         {route.page === 'home' && <HomePage />}
         {route.page === 'reader' && <ReaderPage />}
-        {route.page === 'admin' && <AdminPage />}
+        
+        {/* Sirf sahi password waale ko hi Admin Page dikhega */}
+        {route.page === 'admin' && (
+          isAdminAuthenticated ? (
+            <AdminPage />
+          ) : (
+            <div className="p-8 text-center text-red-500 font-bold">
+              Unauthorized Access. Please refresh and enter correct password.
+            </div>
+          )
+        )}
       </main>
 
       <FloatingPlayer />
