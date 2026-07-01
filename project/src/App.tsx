@@ -8,7 +8,7 @@ import { HomePage } from './pages/HomePage';
 import { ReaderPage } from './pages/ReaderPage';
 import { AdminPage } from './pages/AdminPage';
 
-export function App() {
+export default function App() {
   const { route } = useApp();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
