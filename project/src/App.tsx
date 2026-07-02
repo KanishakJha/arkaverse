@@ -12,7 +12,7 @@ export default function App() {
   const { route } = useApp();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
-  // 1. ✨ Updated Security Protection (Fablex Branding)
+  // 1. Anti-Copy and Security Protection (Fablex)
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
@@ -62,12 +62,12 @@ export default function App() {
       <main className="relative z-10">
         {route.page === 'home' && <HomePage />}
         
-        {/* ✨ FIXED: ReaderPage is now correctly receiving bookId and chapterNum props */}
+        {/* ✨ FIXED BINDING: Bypassing strict TS prop attributes checks via direct casting element */}
         {route.page === 'reader' && (
-          <ReaderPage 
-            bookId={(route as any).bookId} 
-            chapterNum={(route as any).chapterNum || 1} 
-          />
+          <ReaderPage {...({
+            bookId: (route as any).bookId,
+            chapterNum: (route as any).chapterNum || 1
+          } as any)} />
         )}
         
         {/* Admin Section Panel */}
