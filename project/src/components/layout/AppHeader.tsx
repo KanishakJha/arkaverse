@@ -1,4 +1,4 @@
-import { BookOpen, Settings, ChevronLeft, Eye, Ghost, Dna } from 'lucide-react'
+import { BookOpen, Settings, ChevronLeft } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -6,7 +6,6 @@ import { AURA_THEMES } from '../../types'
 
 export function AppHeader() {
   const { route, navigate, auraTheme, currentBook } = useApp()
-  const colors = AURA_THEMES[auraTheme]
   const isReader = route.page === 'reader'
   const isAdmin = route.page === 'admin'
 
@@ -63,8 +62,6 @@ export function AppHeader() {
 
         {/* Right: nav */}
         <div className="flex items-center gap-2">
-          {/* v2.0 Sovereign Badge Has Been Completely Removed From Here */}
-          
           <Button
             variant="ghost"
             size="icon"
