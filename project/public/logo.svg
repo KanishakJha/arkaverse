@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="arkaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF3E00" />
+      <stop offset="50%" stop-color="#FF7300" />
+      <stop offset="100%" stop-color="#FFB300" />
+    </linearGradient>
+    
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <circle cx="50" cy="50" r="42" fill="none" stroke="url(#arkaGradient)" stroke-width="3" stroke-dasharray="6 3" opacity="0.6"/>
+
+  <path d="M50 12 L82 78 L68 78 L50 40 L32 78 L18 78 Z" fill="url(#arkaGradient)" filter="url(#glow)" />
+  
+  <path d="M50 22 L53 34 L65 37 L53 40 L50 52 L47 40 L35 37 L47 34 Z" fill="#FFFFFF" />
+
+  <path d="M35 85 L65 85" stroke="url(#arkaGradient)" stroke-width="4" stroke-linecap="round" opacity="0.9" />
+</svg>
