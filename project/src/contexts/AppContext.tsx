@@ -176,20 +176,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return result
   }, [chapters])
 
+  // ─── ✨ FIXED ADDBOOK FUNCTION WITH AUTO-MAPPING ───────────────────
   const addBook = useCallback(
     async (
       bookData: Omit<Book, 'id' | 'created_at'>,
       bookChapters: Omit<Chapter, 'id' | 'book_id' | 'created_at'>[]
     ) => {
-      const { data: newBook } = await supabase
+      // Database mapping safety fallback
+      const payload = {
+        ...bookData,
+        description: (bookData as any).synopsis || (bookData as any).description || ""
+      }
+
+      const { data: newBook, error: bookError } = await supabase
         .from('books')
-        .insert(bookData)
+        .insert(payload)
         .select()
         .maybeSingle()
+
+      if (bookError) {
+        console.error("Fablex Insert Book Error:", bookError.message)
+        alert("Database Entry Failed: " + bookError.message)
+        return
+      }
       if (!newBook) return
 
       for (const ch of bookChapters) {
-        await supabase.from('chapters').insert({ ...ch, book_id: newBook.id })
+        const { error: chError } = await supabase
+          .from('chapters')
+          .insert({ ...ch, book_id: newBook.id })
+        if (chError) console.error("Chapter Insert Error:", chError.message)
       }
 
       setBooks((prev) => [...prev, newBook as Book])
@@ -197,18 +213,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     []
   )
 
+  // ─── ✨ FIXED UPDATEBOOK FUNCTION WITH AUTO-MAPPING ─────────────────
   const updateBook = useCallback(
     async (
       bookId: string,
       bookData: Omit<Book, 'id' | 'created_at'>,
       bookChapters: Omit<Chapter, 'id' | 'book_id' | 'created_at'>[]
     ) => {
-      const { data: updated } = await supabase
+      const payload = {
+        ...bookData,
+        description: (bookData as any).synopsis || (bookData as any).description || ""
+      }
+
+      const { data: updated, error: updateError } = await supabase
         .from('books')
-        .update(bookData)
+        .update(payload)
         .eq('id', bookId)
         .select()
         .maybeSingle()
+
+      if (updateError) {
+        console.error("Fablex Update Book Error:", updateError.message)
+        alert("Database Update Failed: " + updateError.message)
+        return
+      }
       if (!updated) return
 
       await supabase.from('chapters').delete().eq('book_id', bookId)
