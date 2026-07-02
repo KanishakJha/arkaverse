@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Search, BookOpen, Compass, Skull, Shield, Flame, Sparkles, Eye, Ghost, Dna } from 'lucide-react'
+import { Search, BookOpen, Compass, Skull, Shield, Flame, Sparkles, HelpCircle, AlertTriangle, Layers } from 'lucide-react'
 
-// Genres ko unique mystic icons ke saath link karna
+// Genres ko unique mystic icons ke saath link karna (Safe Icons Used)
 const GENRE_ICONS: Record<string, any> = {
   All: Compass,
   Epic: Shield,
   'Sci-Fi': Sparkles,
   Horror: Skull,
-  Mystery: Eye,
+  Mystery: HelpCircle,
   Mythology: Flame,
-  Thriller: Ghost,
-  Cyberpunk: Dna,
+  Thriller: AlertTriangle,
+  Cyberpunk: Layers,
 }
 
 export function HomePage() {
@@ -30,12 +30,13 @@ export function HomePage() {
   })
 
   return (
+    /* ⬜ OUTER BACKGROUND IS CLEAN WHITE */
     <div className="pt-24 pb-16 px-4 max-w-6xl mx-auto min-h-screen flex items-center justify-center bg-white animate-fade-in">
       
       {/* 📖 THE OPEN GRIMOIRE - AUTHENTIC OLD BOOK CONTAINER */}
       <div className="w-full grid grid-cols-1 md:grid-cols-2 bg-[#f4ebd0] border-2 border-stone-300 rounded-2xl overflow-hidden min-h-[600px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] relative">
         
-        {/* 📚 CENTER SPINE (Kitaab ke beech ka mod - Realistic Book Crease) */}
+        /* 📚 CENTER SPINE (Kitaab ke beech ka mod) */
         <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[2px] bg-gradient-to-b from-stone-400/40 via-stone-500/20 to-stone-400/40 z-20"></div>
         <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[30px] -translate-x-1/2 bg-gradient-to-r from-stone-900/10 via-transparent to-stone-900/10 pointer-events-none z-10"></div>
 
