@@ -1,4 +1,4 @@
-import { BookOpen, Settings, Sparkles, ChevronLeft } from 'lucide-react'
+import { BookOpen, Settings, ChevronLeft } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -12,8 +12,8 @@ export function AppHeader() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 glass-strong transition-all duration-500"
-      style={{ borderBottom: `1px solid ${colors.primary}20` }}
+      /* ⬜ POINT 1 & 2: NAVBAR BACKGROUND IS NOW WHITE WITH CLEAN STONE BORDER */
+      className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-stone-200/80 shadow-sm transition-all duration-500"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         {/* Left: logo or back */}
@@ -22,7 +22,7 @@ export function AppHeader() {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 text-muted-foreground hover:text-foreground"
+              className="gap-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100"
               onClick={() => navigate({ page: 'home' })}
             >
               <ChevronLeft className="size-4" />
@@ -33,28 +33,27 @@ export function AppHeader() {
               onClick={() => navigate({ page: 'home' })}
               className="flex items-center gap-2.5 group"
             >
+              {/* 🛑 NEW BRAND LOGO: DEEP RED GRADIENT BOOK ICON */}
               <div
-                className="size-7 rounded-lg flex items-center justify-center"
-                style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
+                className="size-7 rounded-lg flex items-center justify-center bg-gradient-to-br from-red-700 to-red-900 shadow-sm transition-transform group-hover:scale-105"
               >
-                <Sparkles className="size-3.5 text-white" />
+                <BookOpen className="size-3.5 text-white" />
               </div>
-              <span className="font-bold tracking-tight text-base">
-                Arka<span style={{ color: colors.primary }}>Verse</span>
+              <span className="font-serif font-bold tracking-tight text-base text-stone-900">
+                Arka<span className="text-red-700">Verse</span>
               </span>
             </button>
           )}
 
           {isReader && currentBook && (
             <div className="hidden sm:flex items-center gap-2 min-w-0">
-              <span className="text-border">|</span>
-              <span className="text-sm text-muted-foreground truncate max-w-[200px]">
+              <span className="text-stone-300">|</span>
+              <span className="text-sm text-stone-600 truncate max-w-[200px]">
                 {currentBook.title}
               </span>
               <Badge
                 variant="outline"
-                className="text-xs shrink-0"
-                style={{ borderColor: `${colors.primary}40`, color: colors.primary }}
+                className="text-xs shrink-0 border-red-200 text-red-700 bg-red-50"
               >
                 {AURA_THEMES[auraTheme].label}
               </Badge>
@@ -64,22 +63,12 @@ export function AppHeader() {
 
         {/* Right: nav */}
         <div className="flex items-center gap-2">
-          {!isReader && !isAdmin && (
-            <div className="hidden sm:flex items-center gap-1">
-              <Badge
-                variant="outline"
-                className="text-xs cursor-default"
-                style={{ borderColor: `${colors.primary}30`, color: `${colors.primary}cc` }}
-              >
-                <Sparkles className="size-2.5 mr-1" />
-                v2.0 Sovereign
-              </Badge>
-            </div>
-          )}
+          {/* ❌ v2.0 Sovereign Badge Has Been Completely Removed From Here */}
+          
           <Button
             variant="ghost"
             size="icon"
-            className="size-8"
+            className="size-8 text-stone-600 hover:text-stone-900 hover:bg-stone-100"
             onClick={() => navigate(isAdmin ? { page: 'home' } : { page: 'admin' })}
             title="Admin Studio"
           >
@@ -89,7 +78,7 @@ export function AppHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="size-8"
+              className="size-8 text-stone-600 hover:text-stone-900 hover:bg-stone-100"
               onClick={() => navigate({ page: 'home' })}
               title="Library"
             >
