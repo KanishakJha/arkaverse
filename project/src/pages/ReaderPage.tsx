@@ -36,27 +36,37 @@ export function ReaderPage() {
     auraTheme,
   } = useApp()
 
-  const bookId = route.page === 'reader' ? route.bookId : ''
+  // ✨ FIXED EXTRACTION: Ensuring safe properties mapping fallback from any context structure types
+  const bookId = (route as any).bookId || '';
   const book = books.find((b) => b.id === bookId)
   const bookChapters = chapters[bookId] ?? []
-  const [chapterNum, setChapterNum] = useState(
-    route.page === 'reader' ? route.chapterNum : 1
-  )
+  
+  const [chapterNum, setChapterNum] = useState<number>(() => {
+    return (route as any).chapterNum || 1
+  })
+
   const chapter = bookChapters.find((c) => c.chapter_number === chapterNum)
   const [readingPct, setReadingPct] = useState(0)
   const [showControls, setShowControls] = useState(true)
   const [showTypoPanel, setShowTypoPanel] = useState(false)
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
-  const colors = AURA_THEMES[auraTheme]
+  
+  // Safety configuration mapping to prevent rendering template crashes
+  const currentTheme = auraTheme || 'solar_dawn'
+  const colors = AURA_THEMES[currentTheme as keyof typeof AURA_THEMES] || { primary: '#0f172a', secondary: '#64748b' }
 
   useEffect(() => {
-    if (bookId) fetchChapters(bookId)
-  }, [bookId])
+    if (bookId) {
+      fetchChapters(bookId)
+    }
+  }, [bookId, fetchChapters])
 
   useEffect(() => {
-    if (chapter && book) setCurrentTrack(book, chapter)
-  }, [chapter?.chapter_number, book?.id])
+    if (chapter && book) {
+      setCurrentTrack(book, chapter)
+    }
+  }, [chapter, book, setCurrentTrack])
 
   useEffect(() => {
     function handleScroll() {
@@ -87,7 +97,7 @@ export function ReaderPage() {
       setChapterNum(next)
       setIsPlaying(false)
       containerRef.current?.scrollTo({ top: 0 })
-      if (route.page === 'reader') navigate({ page: 'reader', bookId, chapterNum: next })
+      navigate({ page: 'reader', bookId, chapterNum: next })
     }
   }
 
@@ -97,73 +107,81 @@ export function ReaderPage() {
   const minutesLeft = Math.max(1, Math.round((wordCount * (1 - readingPct / 100)) / 200))
   const typographyClass = `reader-${typographyMode}`
 
+  // Loading indicator matching ElevenReader aesthetic workspace layout structures
   if (!book || !chapter) {
     return (
-      <div className="flex items-center justify-center h-screen text-muted-foreground">
+      <div className="flex items-center justify-center h-screen bg-[#f8fafc] text-slate-500">
         <div className="text-center">
-          <BookOpen className="size-12 mx-auto mb-3 opacity-30" />
-          <p>Loading chapter…</p>
+          <BookOpen className="size-10 text-slate-300 animate-pulse mx-auto mb-3" />
+          <p className="text-xs font-medium tracking-wide">Syncing text matrix and streams…</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      {/* Reader toolbar — auto-hides */}
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-[#f8fafc] text-slate-900 font-sans">
+      
+      {/* 🧭 ELEVENREADER STYLE TEXT HEADERS SYSTEM CONTAINER */}
       <div
-        className={`fixed top-14 left-0 right-0 z-40 glass-strong border-b border-white/5 transition-all duration-500 ${
+        className={`fixed top-14 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200/60 transition-all duration-500 ${
           showControls ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
         }`}
       >
         <div className="mx-auto max-w-3xl px-4 sm:px-6 h-12 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="text-xs text-muted-foreground truncate">
-              Ch. {chapter.chapter_number}: {chapter.title}
+          <div className="flex items-center min-w-0">
+            <span className="text-xs font-semibold text-slate-800 truncate">
+              Chapter {chapter.chapter_number}: {chapter.title}
             </span>
           </div>
+          
           <div className="flex items-center gap-2 shrink-0">
-            <Badge variant="outline" className="text-xs border-white/10 hidden sm:flex">
+            <Badge variant="outline" className="text-[11px] border-slate-200 text-slate-500 bg-slate-50 px-2 font-medium hidden sm:flex">
               {minutesLeft}m left
             </Badge>
-            <Badge variant="outline" className="text-xs border-white/10 hidden sm:flex">
-              {Math.round(readingPct)}%
+            <Badge variant="outline" className="text-[11px] border-slate-200 text-slate-500 bg-slate-50 px-2 font-medium hidden sm:flex">
+              {Math.round(readingPct)}% read
             </Badge>
+            
             <Button
               variant="ghost"
               size="icon"
-              className="size-7"
+              className="size-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-lg"
               onClick={() => setShowTypoPanel(!showTypoPanel)}
             >
-              <Type className="size-3.5" />
+              <Type className="size-4" />
             </Button>
+            
             <Button
               size="sm"
-              className="h-7 gap-1.5 text-xs font-medium"
+              className="h-8 gap-1.5 text-xs font-semibold px-3.5 shadow-sm rounded-lg transition-all"
               style={isPlaying ? {
-                background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                background: '#0f172a',
                 color: 'white',
-                border: 'none',
-              } : {}}
-              variant={isPlaying ? 'default' : 'outline'}
+              } : {
+                background: '#ffffff',
+                color: '#0f172a',
+                border: '1px solid #cbd5e1'
+              }}
               onClick={() => setIsPlaying(!isPlaying)}
             >
               <Headphones className="size-3.5" />
-              {isPlaying ? 'Listening' : 'Start Audio'}
+              {isPlaying ? 'Listening' : 'Listen Audio'}
             </Button>
           </div>
         </div>
 
+        {/* TYPOGRAPHY CONTROL HOVER BOX */}
         {showTypoPanel && (
-          <div className="border-t border-white/5 px-4 sm:px-6 py-3">
-            <div className="mx-auto max-w-3xl flex flex-wrap items-center gap-4">
+          <div className="border-t border-slate-100 bg-slate-50 px-4 sm:px-6 py-2.5">
+            <div className="mx-auto max-w-3xl flex flex-wrap items-center gap-5">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Font</span>
+                <span className="text-xs font-medium text-slate-500">Style</span>
                 <Select
                   value={typographyMode}
                   onValueChange={(v) => setTypographyMode(v as TypographyMode)}
                 >
-                  <SelectTrigger className="h-7 text-xs w-28 border-white/10">
+                  <SelectTrigger className="h-7 text-xs w-28 bg-white border-slate-200 text-slate-800 rounded-md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -173,20 +191,22 @@ export function ReaderPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Size</span>
-                <Button variant="ghost" size="icon" className="size-6" onClick={() => setFontSize(Math.max(14, fontSize - 1))}>
-                  <Minus className="size-3" />
+              
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-medium text-slate-500 mr-1">Scale</span>
+                <Button variant="outline" size="icon" className="size-7 bg-white border-slate-200" onClick={() => setFontSize(Math.max(14, fontSize - 1))}>
+                  <Minus className="size-3 text-slate-600" />
                 </Button>
-                <span className="text-xs w-8 text-center">{fontSize}</span>
-                <Button variant="ghost" size="icon" className="size-6" onClick={() => setFontSize(Math.min(28, fontSize + 1))}>
-                  <Plus className="size-3" />
+                <span className="text-xs font-bold px-1.5 text-slate-700 min-w-[24px] text-center">{fontSize}</span>
+                <Button variant="outline" size="icon" className="size-7 bg-white border-slate-200" onClick={() => setFontSize(Math.min(28, fontSize + 1))}>
+                  <Plus className="size-3 text-slate-600" />
                 </Button>
               </div>
+              
               {isPlaying && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Speed</span>
-                  <div className="w-24">
+                  <span className="text-xs font-medium text-slate-500">Speed</span>
+                  <div className="w-20">
                     <Slider
                       min={0.5} max={3} step={0.25}
                       value={[playbackSpeed]}
@@ -194,96 +214,91 @@ export function ReaderPage() {
                       className="h-1"
                     />
                   </div>
-                  <span className="text-xs text-muted-foreground">{playbackSpeed}x</span>
+                  <span className="text-xs font-bold text-slate-600">{playbackSpeed}x</span>
                 </div>
               )}
+              
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-6 ml-auto"
+                className="size-7 ml-auto text-slate-400 hover:text-slate-700"
                 onClick={() => setShowTypoPanel(false)}
               >
-                <X className="size-3" />
+                <X className="size-4" />
               </Button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Progress bar */}
-      <div className="fixed top-14 left-0 right-0 h-0.5 z-40" style={{ background: 'var(--border)' }}>
+      {/* Modern Minimalist Reader Slider Line */}
+      <div className="fixed top-14 left-0 right-0 h-0.5 z-40 bg-slate-200/50">
         <div
-          className="h-full transition-all duration-500"
-          style={{
-            width: `${readingPct}%`,
-            background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})`,
-          }}
+          className="h-full bg-slate-900 transition-all duration-300"
+          style={{ width: `${readingPct}%` }}
         />
       </div>
 
-      {/* Scrollable reading area */}
+      {/* 📖 TEXT CONTENT WORKSPACE AREA */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto pt-32 pb-40 px-4 sm:px-6"
+        className="flex-1 overflow-y-auto pt-32 pb-40 px-4 sm:px-6 custom-scrollbar"
       >
         <div className="mx-auto max-w-[65ch]">
           <div className="mb-10 text-center">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+            <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-slate-400 mb-2">
               Chapter {chapter.chapter_number}
             </p>
-            <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight"
-              style={{ textShadow: `0 0 40px ${colors.primary}30` }}
-            >
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
               {chapter.title}
             </h1>
-            <div
-              className="mx-auto mt-4 h-px w-16 rounded-full"
-              style={{ background: `linear-gradient(90deg, transparent, ${colors.primary}, transparent)` }}
-            />
+            <div className="mx-auto mt-4 h-[2px] w-12 rounded bg-slate-200" />
           </div>
 
-          <KineticText
-            content={chapter.content}
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            typographyClass={typographyClass}
-            fontSize={fontSize}
-            onProgress={(pct: number) => {
-              if (book) updateProgress(book.id, Math.max(readingPct, pct), 0, chapterNum)
-            }}
-          />
+          {/* DYNAMIC TEXT RENDER CORE PIPELINE */}
+          <div className="text-slate-800 leading-relaxed font-normal antialiased protected-content">
+            <KineticText
+              content={chapter.content}
+              isPlaying={isPlaying}
+              playbackSpeed={playbackSpeed}
+              typographyClass={typographyClass}
+              fontSize={fontSize}
+              onProgress={(pct: number) => {
+                if (book) updateProgress(book.id, Math.max(readingPct, pct), 0, chapterNum)
+              }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Bottom chapter navigation */}
+      {/* 🧭 STABLE CHAPTER BAR OVERLAYS BUTTONS SYSTEM */}
       <div
-        className={`fixed bottom-20 left-0 right-0 z-30 flex justify-center gap-3 transition-all duration-500 ${
+        className={`fixed bottom-24 left-0 right-0 z-30 flex justify-center gap-3 transition-all duration-500 ${
           showControls ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
         }`}
       >
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 glass border-white/10 text-xs"
+          className="gap-1.5 h-8 bg-white border-slate-200/80 hover:bg-slate-50 text-xs shadow-sm font-semibold rounded-lg text-slate-700"
           disabled={!hasPrev}
           onClick={() => goChapter(-1)}
         >
-          <ChevronLeft className="size-3.5" />
+          <ChevronLeft className="size-4" />
           Previous
         </Button>
-        <span className="flex items-center text-xs text-muted-foreground px-2">
+        <span className="flex items-center text-xs font-bold text-slate-400 px-3 bg-white border border-slate-200/60 rounded-lg shadow-sm">
           {chapterNum} / {bookChapters.length}
         </span>
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 glass border-white/10 text-xs"
+          className="gap-1.5 h-8 bg-white border-slate-200/80 hover:bg-slate-50 text-xs shadow-sm font-semibold rounded-lg text-slate-700"
           disabled={!hasNext}
           onClick={() => goChapter(1)}
         >
           Next
-          <ChevronRight className="size-3.5" />
+          <ChevronRight className="size-4" />
         </Button>
       </div>
     </div>
