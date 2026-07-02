@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { Search, BookOpen, Compass, Skull, Shield, Flame, Sparkles, HelpCircle, AlertTriangle, Layers } from 'lucide-react'
 
@@ -17,8 +17,22 @@ export function HomePage() {
   const { books } = useApp()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedGenre, setSelectedGenre] = useState('All')
+  const [isFlipping, setIsFlipping] = useState(false)
 
   const genres = ['All', 'Epic', 'Sci-Fi', 'Horror', 'Mystery', 'Mythology', 'Thriller', 'Cyberpunk']
+
+  const handleGenreSelect = (genre: string) => {
+    if (genre === selectedGenre) return
+    setIsFlipping(true)
+    setSelectedGenre(genre)
+  }
+
+  useEffect(() => {
+    if (isFlipping) {
+      const timer = setTimeout(() => setIsFlipping(false), 600) // 0.6s animation duration match
+      return () => clearTimeout(timer)
+    }
+  }, [isFlipping])
 
   const filteredBooks = books.filter((book) => {
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,7 +79,7 @@ export function HomePage() {
                 return (
                   <button
                     key={genre}
-                    onClick={() => setSelectedGenre(genre)}
+                    onClick={() => handleGenreSelect(genre)}
                     className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all duration-300 text-left group ${
                       isSelected
                         ? 'bg-red-50 border-red-200 text-red-700 font-semibold shadow-sm'
@@ -89,8 +103,8 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* 📜 RIGHT PAGE: REAL-TIME DISPLAY POOL */}
-        <div className="p-6 bg-[#fdf8e9] flex flex-col justify-between relative overflow-hidden">
+        {/* 📜 RIGHT PAGE: REAL-TIME DISPLAY POOL WITH ANIMATION MATCH */}
+        <div className={`p-6 bg-[#fdf8e9] flex flex-col justify-between relative overflow-hidden ${isFlipping ? 'animate-page-flip-right' : ''}`}>
           <div className="flex-1 flex flex-col justify-center items-center w-full">
             {filteredBooks.length === 0 ? (
               <div className="text-center p-4 max-w-sm">
