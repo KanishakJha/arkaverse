@@ -30,7 +30,6 @@ export function HomePage() {
   })
 
   return (
-    /* ⬜ POINT 2: OUTER BACKGROUND IS NOW CLEAN WHITE */
     <div className="pt-24 pb-16 px-4 max-w-6xl mx-auto min-h-screen flex items-center justify-center bg-white animate-fade-in">
       
       {/* 📖 THE OPEN GRIMOIRE - AUTHENTIC OLD BOOK CONTAINER */}
@@ -40,7 +39,7 @@ export function HomePage() {
         <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[2px] bg-gradient-to-b from-stone-400/40 via-stone-500/20 to-stone-400/40 z-20"></div>
         <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[30px] -translate-x-1/2 bg-gradient-to-r from-stone-900/10 via-transparent to-stone-900/10 pointer-events-none z-10"></div>
 
-        {/* 📜 LEFT PAGE: SUB-UNIVERSE NAVIGATOR (POINT 3: OLD PAPER COLOR) */}
+        {/* 📜 LEFT PAGE: SUB-UNIVERSE NAVIGATOR */}
         <div className="p-6 sm:p-8 bg-[#fdf8e9] flex flex-col justify-between border-b md:border-b-0 md:border-r border-stone-200 relative">
           <div>
             {/* Page Header */}
