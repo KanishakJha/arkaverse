@@ -27,96 +27,65 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ─── ArkaVerse AMOLED Dark Theme ──────────────────────────────────────── */
+/* ─── ArkaVerse Premium Light Book Theme ────────────────────────────────── */
 :root {
   --radius: 0.625rem;
 
-  /* Pure AMOLED black canvas */
-  --background: oklch(0 0 0);
-  --foreground: oklch(0.97 0 0);
+  /* Clean Premium White / Off-white Background Frame */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.25 0.02 20);
 
-  --card: oklch(0.08 0 0);
-  --card-foreground: oklch(0.97 0 0);
+  /* Authentic Parchment / Book tone properties */
+  --card: oklch(0.95 0.02 40);
+  --card-foreground: oklch(0.2 0.02 20);
 
-  --popover: oklch(0.1 0 0);
-  --popover-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.98 0.01 40);
+  --popover-foreground: oklch(0.2 0.02 20);
 
-  --primary: oklch(0.97 0 0);
-  --primary-foreground: oklch(0.05 0 0);
+  /* Deep Crimson / Blood Red Core Accents */
+  --primary: oklch(0.35 0.15 25);
+  --primary-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.14 0 0);
-  --secondary-foreground: oklch(0.97 0 0);
+  --secondary: oklch(0.93 0.02 45);
+  --secondary-foreground: oklch(0.35 0.15 25);
 
-  --muted: oklch(0.13 0 0);
-  --muted-foreground: oklch(0.55 0 0);
+  --muted: oklch(0.92 0.01 40);
+  --muted-foreground: oklch(0.5 0.02 30);
 
-  --accent: oklch(0.16 0 0);
-  --accent-foreground: oklch(0.97 0 0);
+  --accent: oklch(0.9 0.03 30);
+  --accent-foreground: oklch(0.35 0.15 25);
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.6 0 0);
+  --border: oklch(0.25 0.02 20 / 12%);
+  --input: oklch(0.25 0.02 20 / 8%);
+  --ring: oklch(0.35 0.15 25);
 
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.97 0.01 40);
+  --sidebar-foreground: oklch(0.2 0.02 20);
+  --sidebar-border: oklch(0.25 0.02 20 / 8%);
 
-  --sidebar: oklch(0.07 0 0);
-  --sidebar-foreground: oklch(0.97 0 0);
-  --sidebar-primary: oklch(0.97 0 0);
-  --sidebar-primary-foreground: oklch(0.05 0 0);
-  --sidebar-accent: oklch(0.14 0 0);
-  --sidebar-accent-foreground: oklch(0.97 0 0);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.5 0 0);
-
-  /* Solar Aura dynamic vars — updated by JS */
-  --aura-1: #F59E0B;
-  --aura-2: #EC4899;
-  --aura-3: #F97316;
+  /* Custom Red Accents for dynamic flows */
+  --aura-1: #991b1b;
+  --aura-2: #7f1d1d;
+  --aura-3: #450a0a;
 }
 
-/* ─── Solar Aura Keyframes ──────────────────────────────────────────────── */
-@keyframes aura-breathe-a {
-  0%, 100% { opacity: 0.18; transform: scale(1) translate(0, 0); }
-  33%       { opacity: 0.30; transform: scale(1.08) translate(-15px, 20px); }
-  66%       { opacity: 0.22; transform: scale(0.95) translate(12px, -10px); }
+/* ─── 📖 Core Book Page Flip Keyframes ──────────────────────────────────── */
+@keyframes flipLeft {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(-180deg); }
 }
 
-@keyframes aura-breathe-b {
-  0%, 100% { opacity: 0.14; transform: scale(1.05) translate(0, 0) rotate(0deg); }
-  40%       { opacity: 0.25; transform: scale(0.9) translate(20px, 15px) rotate(8deg); }
-  80%       { opacity: 0.20; transform: scale(1.12) translate(-8px, -18px) rotate(-4deg); }
-}
-
-@keyframes aura-breathe-c {
-  0%, 100% { opacity: 0.12; transform: scale(0.95) translate(10px, -10px); }
-  50%       { opacity: 0.22; transform: scale(1.1) translate(-10px, 10px); }
-}
-
-@keyframes aura-pulse-ring {
-  0%, 100% { opacity: 0.06; transform: scale(1); }
-  50%       { opacity: 0.12; transform: scale(1.05); }
+@keyframes flipRight {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(180deg); }
 }
 
 @keyframes float-up {
@@ -124,83 +93,58 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes progress-spin {
-  from { stroke-dashoffset: 283; }
-  to   { stroke-dashoffset: var(--target-offset, 0); }
+/* Custom Page Turning Utilities */
+.animate-page-flip-left {
+  perspective: 1500px;
+  transform-style: preserve-3d;
+  animation: flipLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: right center;
 }
 
-/* ─── Aura Orb Utilities ────────────────────────────────────────────────── */
-.aura-orb-a { animation: aura-breathe-a 9s ease-in-out infinite; }
-.aura-orb-b { animation: aura-breathe-b 13s ease-in-out infinite; }
-.aura-orb-c { animation: aura-breathe-c 7s ease-in-out infinite; }
-.aura-pulse-ring { animation: aura-pulse-ring 4s ease-in-out infinite; }
+.animate-page-flip-right {
+  perspective: 1500px;
+  transform-style: preserve-3d;
+  animation: flipRight 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: left center;
+}
 
-/* ─── Glassmorphism Panels ──────────────────────────────────────────────── */
+.animate-float-up { animation: float-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ─── Glassmorphism Light Panels ────────────────────────────────────────── */
 .glass {
-  background: oklch(1 0 0 / 4%);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid oklch(1 0 0 / 8%);
+  background: oklch(1 0 0 / 60%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid oklch(0 0 0 / 6%);
 }
 
 .glass-strong {
-  background: oklch(1 0 0 / 7%);
-  backdrop-filter: blur(32px) saturate(200%);
-  -webkit-backdrop-filter: blur(32px) saturate(200%);
-  border: 1px solid oklch(1 0 0 / 12%);
+  background: oklch(1 0 0 / 80%);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid oklch(0 0 0 / 10%);
 }
 
-/* ─── Book Card Holographic Hover ───────────────────────────────────────── */
-.book-card {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.3s ease,
-              border-color 0.3s ease;
-}
-.book-card:hover {
-  transform: translateY(-6px) scale(1.025);
-}
+/* ─── Book Display Grid Scrollbar ───────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: oklch(0 0 0 / 15%); border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: oklch(0 0 0 / 30%); }
 
-/* ─── Reader Typography Modes ───────────────────────────────────────────── */
-.reader-sans     { font-family: system-ui, -apple-system, sans-serif; }
-.reader-serif    { font-family: Georgia, 'Times New Roman', serif; letter-spacing: 0.01em; }
-.reader-focus    { font-family: system-ui, sans-serif; letter-spacing: 0.02em; word-spacing: 0.1em; }
-.reader-dyslexia { font-family: Arial, sans-serif; letter-spacing: 0.05em; word-spacing: 0.2em; line-height: 2; }
-
-/* ─── Float-up entrance animation ──────────────────────────────────────── */
-.animate-float-up { animation: float-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-/* ─── Kinetic text highlight ────────────────────────────────────────────── */
-.kinetic-active {
-  color: oklch(0.97 0 0);
-  text-shadow: 0 0 14px var(--aura-1);
-  transition: color 0.2s ease, text-shadow 0.2s ease;
-}
-.kinetic-inactive {
-  color: oklch(0.38 0 0);
-  transition: color 0.6s ease;
-}
-
-/* ─── Scrollbar ─────────────────────────────────────────────────────────── */
-::-webkit-scrollbar             { width: 4px; height: 4px; }
-::-webkit-scrollbar-track       { background: transparent; }
-::-webkit-scrollbar-thumb       { background: oklch(1 0 0 / 15%); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 25%); }
-
-/* ─── Global Base ───────────────────────────────────────────────────────── */
+/* ─── Global Base Settings ──────────────────────────────────────────────── */
 @layer base {
   * { @apply border-border; }
-  html { color-scheme: dark; }
+  html { color-scheme: light; }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'kern' 1, 'liga' 1;
+    font-family: system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* ArkaVerse Text Protection Rule */
 .protected-content {
-  -webkit-user-select: none;  /* Safari */
-  -ms-user-select: none;      /* IE 10/11 */
-  user-select: none;          /* Standard Chrome/Firefox */
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
