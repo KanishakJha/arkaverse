@@ -31,13 +31,14 @@ export function AppHeader() {
               onClick={() => navigate({ page: 'home' })}
               className="flex items-center gap-2.5 group"
             >
+              {/* ✨ NEW BRAND LOGO: FABLEX DEEP RED PREMIUM BOOK */}
               <div
                 className="size-7 rounded-lg flex items-center justify-center bg-gradient-to-br from-red-700 to-red-900 shadow-sm transition-transform group-hover:scale-105"
               >
                 <BookOpen className="size-3.5 text-white" />
               </div>
               <span className="font-serif font-bold tracking-tight text-base text-stone-900">
-                Arka<span className="text-red-700">Verse</span>
+                Fable<span className="text-red-700">x</span>
               </span>
             </button>
           )}
