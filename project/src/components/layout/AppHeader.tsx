@@ -1,4 +1,4 @@
-import { BookOpen, Settings, ChevronLeft } from 'lucide-react'
+import { BookOpen, Settings, ChevronLeft, Eye, Ghost, Dna } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -12,7 +12,7 @@ export function AppHeader() {
 
   return (
     <header
-      /* ⬜ POINT 1 & 2: NAVBAR BACKGROUND IS NOW WHITE WITH CLEAN STONE BORDER */
+      /* NAVBAR BACKGROUND IS NOW WHITE WITH CLEAN STONE BORDER */
       className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-stone-200/80 shadow-sm transition-all duration-500"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
@@ -33,7 +33,7 @@ export function AppHeader() {
               onClick={() => navigate({ page: 'home' })}
               className="flex items-center gap-2.5 group"
             >
-              {/* 🛑 NEW BRAND LOGO: DEEP RED GRADIENT BOOK ICON */}
+              {/* NEW BRAND LOGO: DEEP RED GRADIENT BOOK ICON */}
               <div
                 className="size-7 rounded-lg flex items-center justify-center bg-gradient-to-br from-red-700 to-red-900 shadow-sm transition-transform group-hover:scale-105"
               >
@@ -63,7 +63,7 @@ export function AppHeader() {
 
         {/* Right: nav */}
         <div className="flex items-center gap-2">
-          {/* ❌ v2.0 Sovereign Badge Has Been Completely Removed From Here */}
+          {/* v2.0 Sovereign Badge Has Been Completely Removed From Here */}
           
           <Button
             variant="ghost"
