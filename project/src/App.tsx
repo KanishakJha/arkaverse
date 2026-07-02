@@ -12,11 +12,11 @@ export default function App() {
   const { route } = useApp();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
-  // 1. Anti-Copy and Security Protection
+  // 1. ✨ Updated Security Protection (Fablex Branding)
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
-      alert("ArkaVerse Content is Protected!");
+      alert("Fablex Premium Content is Protected!");
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -43,14 +43,13 @@ export default function App() {
   // 2. Admin Page Password Lock
   useEffect(() => {
     if (route.page === 'admin' && !isAdminAuthenticated) {
-      // Yahan aap apna manpasand secret password badal sakte ho (Abhi 'ArkaAdmin123' rakha hai)
       const password = prompt("Enter Secret Admin Password to Access Showroom:");
       
       if (password === "ArkaAdmin123") {
         setIsAdminAuthenticated(true);
       } else {
         alert("Wrong Password! Access Denied.");
-        window.location.href = "/"; // Galat password par home par bhej dega
+        window.location.href = "/";
       }
     }
   }, [route.page, isAdminAuthenticated]);
@@ -62,9 +61,16 @@ export default function App() {
 
       <main className="relative z-10">
         {route.page === 'home' && <HomePage />}
-        {route.page === 'reader' && <ReaderPage />}
         
-        {/* Sirf sahi password waale ko hi Admin Page dikhega */}
+        {/* ✨ FIXED: ReaderPage is now correctly receiving bookId and chapterNum props */}
+        {route.page === 'reader' && (
+          <ReaderPage 
+            bookId={(route as any).bookId} 
+            chapterNum={(route as any).chapterNum || 1} 
+          />
+        )}
+        
+        {/* Admin Section Panel */}
         {route.page === 'admin' && (
           isAdminAuthenticated ? (
             <AdminPage />
