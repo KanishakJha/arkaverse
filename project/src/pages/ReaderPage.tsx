@@ -54,8 +54,6 @@ export function ReaderPage() {
   
   // Safety configuration mapping to prevent rendering template crashes
   const currentTheme = auraTheme || 'solar_dawn'
-  const colors = AURA_THEMES[currentTheme as keyof typeof AURA_THEMES] || { primary: '#0f172a', secondary: '#64748b' }
-
   useEffect(() => {
     if (bookId) {
       fetchChapters(bookId)
