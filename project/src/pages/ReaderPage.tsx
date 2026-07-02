@@ -6,7 +6,6 @@ import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Slider } from '../components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { AURA_THEMES } from '../types'
 import type { TypographyMode } from '../types'
 
 const TYPOGRAPHY_MODES: { value: TypographyMode; label: string }[] = [
@@ -33,10 +32,8 @@ export function ReaderPage() {
     playbackSpeed,
     setPlaybackSpeed,
     setCurrentTrack,
-    auraTheme,
   } = useApp()
 
-  // ✨ FIXED EXTRACTION: Ensuring safe properties mapping fallback from any context structure types
   const bookId = (route as any).bookId || '';
   const book = books.find((b) => b.id === bookId)
   const bookChapters = chapters[bookId] ?? []
@@ -51,9 +48,7 @@ export function ReaderPage() {
   const [showTypoPanel, setShowTypoPanel] = useState(false)
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
-  
-  // Safety configuration mapping to prevent rendering template crashes
-  const currentTheme = auraTheme || 'solar_dawn'
+
   useEffect(() => {
     if (bookId) {
       fetchChapters(bookId)
@@ -105,7 +100,6 @@ export function ReaderPage() {
   const minutesLeft = Math.max(1, Math.round((wordCount * (1 - readingPct / 100)) / 200))
   const typographyClass = `reader-${typographyMode}`
 
-  // Loading indicator matching ElevenReader aesthetic workspace layout structures
   if (!book || !chapter) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#f8fafc] text-slate-500">
@@ -120,7 +114,7 @@ export function ReaderPage() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-[#f8fafc] text-slate-900 font-sans">
       
-      {/* 🧭 ELEVENREADER STYLE TEXT HEADERS SYSTEM CONTAINER */}
+      {/* 🧭 NAVIGATION HEADER BAR */}
       <div
         className={`fixed top-14 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200/60 transition-all duration-500 ${
           showControls ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
@@ -229,7 +223,7 @@ export function ReaderPage() {
         )}
       </div>
 
-      {/* Modern Minimalist Reader Slider Line */}
+      {/* Progress Slider Line */}
       <div className="fixed top-14 left-0 right-0 h-0.5 z-40 bg-slate-200/50">
         <div
           className="h-full bg-slate-900 transition-all duration-300"
@@ -253,7 +247,7 @@ export function ReaderPage() {
             <div className="mx-auto mt-4 h-[2px] w-12 rounded bg-slate-200" />
           </div>
 
-          {/* DYNAMIC TEXT RENDER CORE PIPELINE */}
+          {/* DYNAMIC TEXT RENDER PIPELINE */}
           <div className="text-slate-800 leading-relaxed font-normal antialiased protected-content">
             <KineticText
               content={chapter.content}
@@ -269,7 +263,7 @@ export function ReaderPage() {
         </div>
       </div>
 
-      {/* 🧭 STABLE CHAPTER BAR OVERLAYS BUTTONS SYSTEM */}
+      {/* 🧭 CHAPTER NAVIGATION BUTTONS */}
       <div
         className={`fixed bottom-24 left-0 right-0 z-30 flex justify-center gap-3 transition-all duration-500 ${
           showControls ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
