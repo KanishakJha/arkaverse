@@ -29,7 +29,7 @@ export function HomePage() {
 
   useEffect(() => {
     if (isFlipping) {
-      const timer = setTimeout(() => setIsFlipping(false), 600) // 0.6s animation duration match
+      const timer = setTimeout(() => setIsFlipping(false), 600)
       return () => clearTimeout(timer)
     }
   }, [isFlipping])
@@ -98,12 +98,12 @@ export function HomePage() {
           </div>
 
           <div className="pt-4 border-t border-stone-200 text-[11px] text-stone-400 font-serif flex justify-between items-center">
-            <span>ArkaVerse Archive</span>
+            <span>Fablex Archive</span>
             <span>Page I</span>
           </div>
         </div>
 
-        {/* 📜 RIGHT PAGE: REAL-TIME DISPLAY POOL WITH ANIMATION MATCH */}
+        {/* 📜 RIGHT PAGE: REAL-TIME DISPLAY POOL */}
         <div className={`p-6 bg-[#fdf8e9] flex flex-col justify-between relative overflow-hidden ${isFlipping ? 'animate-page-flip-right' : ''}`}>
           <div className="flex-1 flex flex-col justify-center items-center w-full">
             {filteredBooks.length === 0 ? (
