@@ -172,15 +172,18 @@ export function AdminPage() {
     }
   }
 
+  // ✨ FIXED DATA-MAPPING METHOD TO MATCH EXACT DATABASE SCHEMA KEYS
   async function onSubmit(data: BookFormData) {
     setSubmitting(true)
     try {
       const genreList = data.genres.split(',').map((g) => g.trim()).filter(Boolean)
+      
       const bookPayload = {
         title: data.title,
         author: data.author,
-        synopsis: data.synopsis,
-        genres: genreList,
+        synopsis: data.synopsis,          // Primary reference key
+        description: data.synopsis,       // Maps directly to description text database column
+        genres: genreList,                // String Array schema matching
         tags: genreList.map((g) => g.toLowerCase()),
         cover_url: data.cover_url ?? '',
         aura_theme: data.aura_theme,
@@ -189,6 +192,7 @@ export function AdminPage() {
         featured: false,
         published: true,
       }
+
       const chapterPayload = data.chapters.map((ch, idx) => ({
         chapter_number: idx + 1,
         title: ch.title,
@@ -208,6 +212,9 @@ export function AdminPage() {
       }
 
       clearForm()
+    } catch (err: any) {
+      console.error("Submission Crash Log:", err)
+      alert("Something went wrong while publishing: " + (err.message || err))
     } finally {
       setSubmitting(false)
     }
@@ -590,7 +597,7 @@ export function AdminPage() {
           <p className="text-xs text-muted-foreground">
             {editingBook
               ? 'Changes will update the book in your library immediately.'
-              : 'Publishing will immediately add this universe to the ArkaVerse catalog.'}
+              : 'Publishing will immediately add this universe to the Fablex catalog.'}
           </p>
           <Button
             type="submit"
@@ -608,7 +615,7 @@ export function AdminPage() {
             ) : editingBook ? (
               <><Check className="size-4" />Save Changes</>
             ) : (
-              <><Upload className="size-4" />Publish to ArkaVerse</>
+              <><Upload className="size-4" />Publish to Fablex</>
             )}
           </Button>
         </div>
