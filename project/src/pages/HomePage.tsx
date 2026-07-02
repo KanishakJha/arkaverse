@@ -66,22 +66,12 @@ export function HomePage() {
   return (
     <div className="fixed inset-0 pt-14 w-screen h-screen flex bg-[#f8fafc] text-slate-900 overflow-hidden font-sans">
       
-      {/* 🧭 LEFT SIDEBAR: EXPLORE PANEL */}
+      {/* 🧭 LEFT SIDEBAR: GENRES ONLY */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200/80 p-5 justify-between shrink-0">
         <div className="space-y-6">
           <div>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold block mb-3">Discover</span>
-            <div className="space-y-1">
-              <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-slate-900 text-white font-medium shadow-sm transition-all">
-                <Compass className="size-4" />
-                <span>Explore Audiobooks</span>
-              </button>
-            </div>
-          </div>
-
-          <div>
             <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold block mb-2">Genres & Tags</span>
-            <div className="space-y-0.5 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-0.5 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
               {genres.map((genre) => {
                 const Icon = GENRE_ICONS[genre] || Compass
                 const isSelected = selectedGenre === genre
@@ -115,7 +105,6 @@ export function HomePage() {
       {/* 🚀 MAIN MARKETPLACE VIEW */}
       <main className="flex-1 flex flex-col bg-[#f8fafc] overflow-y-auto custom-scrollbar p-6 md:p-8">
         
-        {/* TOP SEARCH BAR PANEL */}
         <div className="max-w-5xl w-full mx-auto mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl mb-1">
             Find your next audiobook
@@ -134,7 +123,6 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* PRODUCTS GRID */}
         <div className="max-w-5xl w-full mx-auto flex-1">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">
@@ -166,7 +154,6 @@ export function HomePage() {
                   }}
                   className="group flex flex-col cursor-pointer"
                 >
-                  {/* ISOMETRIC COVER */}
                   <div className="book-card-premium aspect-[3/4] rounded-xl bg-slate-100 shadow-md border border-slate-200/50 mb-3 overflow-hidden relative">
                     {book.cover_url ? (
                       <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
@@ -176,7 +163,6 @@ export function HomePage() {
                       </div>
                     )}
                     
-                    {/* HOVER EFFECT */}
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                       <div className="size-11 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                         <Play className="size-5 fill-current ml-0.5" />
@@ -184,7 +170,6 @@ export function HomePage() {
                     </div>
                   </div>
 
-                  {/* METADATA */}
                   <div className="px-0.5">
                     <h4 className="text-sm font-semibold text-slate-900 truncate leading-snug group-hover:text-blue-600 transition-colors">
                       {book.title}
@@ -209,3 +194,4 @@ export function HomePage() {
     </div>
   )
 }
+
