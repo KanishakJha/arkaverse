@@ -25,6 +25,7 @@ const chapterSchema = z.object({
   title: z.string().min(1, 'Chapter title required'),
   content: z.string().min(50, 'Chapter content must be at least 50 characters'),
   audio_url: z.string().optional(),
+  is_audio_premium: z.boolean().optional(),
 })
 
 const bookSchema = z.object({
@@ -48,7 +49,7 @@ const DEFAULT_VALUES: BookFormData = {
   cover_url: '',
   aura_theme: 'solar_dawn',
   reading_time_minutes: 30,
-  chapters: [{ title: 'Chapter 1', content: '', audio_url: '' }],
+  chapters: [{ title: 'Chapter 1', content: '', audio_url: '', is_audio_premium: false }],
 }
 
 export function AdminPage() {
@@ -133,8 +134,9 @@ export function AdminPage() {
             title: ch.title,
             content: ch.content,
             audio_url: ch.audio_url ?? '',
+            is_audio_premium: (ch as any).is_audio_premium ?? false,
           }))
-        : [{ title: 'Chapter 1', content: '', audio_url: '' }],
+        : [{ title: 'Chapter 1', content: '', audio_url: '', is_audio_premium: false }],
     })
 
     if (book.cover_url?.startsWith('data:')) {
@@ -192,6 +194,7 @@ export function AdminPage() {
         title: ch.title,
         content: ch.content,
         audio_url: ch.audio_url ?? '',
+        is_audio_premium: ch.is_audio_premium ?? false,
         word_count: ch.content.split(/\s+/).length,
       }))
 
@@ -459,7 +462,7 @@ export function AdminPage() {
                 variant="outline"
                 className="gap-1.5 text-xs border-white/10"
                 onClick={() =>
-                  append({ title: `Chapter ${fields.length + 1}`, content: '', audio_url: '' })
+                  append({ title: `Chapter ${fields.length + 1}`, content: '', audio_url: '', is_audio_premium: false })
                 }
               >
                 <Plus className="size-3.5" />
@@ -547,6 +550,27 @@ export function AdminPage() {
                         {...register(`chapters.${idx}.audio_url`)}
                       />
                     </Field>
+
+                    {/* 🔒 PREMIUM AUDIO TOGGLE SWITCH */}
+                    <div className="flex items-center justify-between mt-3 p-3 bg-orange-500/5 border border-white/5 rounded-xl transition-all duration-200">
+                      <div className="flex flex-col pr-4">
+                        <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                          👑 Require Premium to Listen
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          Users ko yeh background audio sunne ke liye VIP access chahiye hoga.
+                        </span>
+                      </div>
+                      
+                      <label className="relative inline-flex items-center cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          {...register(`chapters.${idx}.is_audio_premium`)}
+                        />
+                        <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-500 peer-checked:after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-orange-600 peer-checked:to-amber-500"></div>
+                      </label>
+                    </div>
                   </div>
                 )}
               </div>
