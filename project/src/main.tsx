@@ -8,7 +8,8 @@ import { AppProvider } from './contexts/AppContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="dark" storageKey="arkaverse-theme">
+    {/* Updated storageKey to match Fablex Ecosystem */}
+    <ThemeProvider defaultTheme="dark" storageKey="fablex-theme">
       <AppProvider>
         <App />
       </AppProvider>
