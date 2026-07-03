@@ -1,18 +1,19 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Play, Pause, ChevronLeft, ChevronRight, Volume2, User, UserCheck } from 'lucide-react'
+import { Play, Pause, ChevronLeft, ChevronRight, Volume2, User, UserCheck, Ghost } from 'lucide-react'
 
 export function ReaderPage() {
   const { route, books, chapters, fetchChapters, isPlaying, setIsPlaying, navigate } = useApp()
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   
-  // 🎙️ PREMIUM GENDER SELECTION STATE
+  // 🎙️ GENDER CONTROL SELECTION
   const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male')
-  
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
   const chunksRef = useRef<string[]>([])
+
+  // 👻 HORROR AMBIENT BACKGROUND SOUND REF
+  const bgMusicRef = useRef<HTMLAudioElement | null>(null)
 
   const book = books.find((b) => b.id === route.bookId)
   
@@ -29,10 +30,10 @@ export function ReaderPage() {
   const activeChapter = bookChapters[currentChapterIndex]
 
   const textToRead = activeChapter?.content || (book?.title.toLowerCase().includes('pralay')
-    ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है."
-    : "Welcome to Blood and Glory. This is the journey of a fighter.")
+    ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेra छा गया है."
+    : "Welcome to the dark journey. Suspense builds up in the shadows.")
 
-  // SMART SPLITTER: Splits text into perfect 1000-character narration sentences
+  // SMART SPLITTER: Splits 5000+ words into small natural chunks
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -40,7 +41,7 @@ export function ReaderPage() {
       let currentChunk = ""
 
       sentences.forEach((sentence) => {
-        if ((currentChunk + sentence).length > 1000) {
+        if ((currentChunk + sentence).length > 600) {
           chunks.push(currentChunk.trim())
           currentChunk = sentence
         } else {
@@ -53,107 +54,105 @@ export function ReaderPage() {
 
       chunksRef.current = chunks
       setCurrentChunkIndex(0) 
-      
-      if (audioRef.current) {
-        audioRef.current.pause()
-        setIsPlaying(false)
-      }
+      window.speechSynthesis.cancel()
     }
-  }, [textToRead, setIsPlaying])
+  }, [textToRead])
 
-  // Google Premium Text-to-Speech Engine Stream Pipeline
+  // 🎵 EFFECT 1: CONTROL HORROR BACKGROUND SOUND WITH PLAYBACK
   useEffect(() => {
-    async function playGoogleVoiceChunk() {
-      if (!isPlaying || chunksRef.current.length === 0) return
-
-      const activeText = chunksRef.current[currentChunkIndex]
-      if (!activeText) return
-
-      try {
-        const isHindi = /[\u0900-\u097F]/.test(activeText)
-        
-        // 🚀 HARDCODED PREMIUM GOOGLE NEURAL VOICE CONFIGURATION
-        // Language detection based on string sequence
-        const languageCode = isHindi ? "hi-IN" : "en-IN"
-        
-        // Premium Indian Male (Wavenet-B / Neural2-B) & Female (Wavenet-A) Engine mapping
-        const voiceName = isHindi 
-          ? (voiceGender === 'male' ? "hi-IN-Wavenet-B" : "hi-IN-Wavenet-A")
-          : (voiceGender === 'male' ? "en-IN-Wavenet-B" : "en-IN-Wavenet-A")
-
-        if (audioRef.current) {
-          audioRef.current.pause()
-        }
-
-        // Direct stream engine connection via high-fidelity pipeline
-        const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyD-YOUR_GOOGLE_SPEECH_API_KEY`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            input: { text: activeText },
-            voice: { languageCode, name: voiceName },
-            audioConfig: { audioEncoding: "MP3", speakingRate: 0.95, pitch: voiceGender === 'male' ? -2.0 : 0.0 }
-          })
-        })
-
-        if (!response.ok) throw new Error("Google API limits or credentials mismatch")
-
-        const data = await response.json()
-        const audioBlob = new Blob([Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))], { type: 'audio/mp3' })
-        const url = URL.createObjectURL(audioBlob)
-        
-        audioRef.current = new Audio(url)
-        audioRef.current.play().catch(() => {})
-
-        audioRef.current.onended = () => {
-          if (currentChunkIndex < chunksRef.current.length - 1) {
-            setCurrentChunkIndex(prev => prev + 1)
-          } else {
-            setIsPlaying(false)
-          }
-        }
-      } catch (err) {
-        console.error("Google Engine fallback trigger:", err)
-        window.speechSynthesis.cancel()
-        const utterance = new SpeechSynthesisUtterance(activeText)
-        utterance.lang = /[\u0900-\u097F]/.test(activeText) ? 'hi-IN' : 'en-IN'
-        utterance.onend = () => {
-          if (currentChunkIndex < chunksRef.current.length - 1) {
-            setCurrentChunkIndex(prev => prev + 1)
-          } else {
-            setIsPlaying(false)
-          }
-        }
-        window.speechSynthesis.speak(utterance)
-      }
+    // Creating ambient track if not exists
+    if (!bgMusicRef.current) {
+      // Using a high-quality endless dark ambient horror pad drone
+      bgMusicRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav')
+      bgMusicRef.current.loop = true
+      bgMusicRef.current.volume = 0.15 // Kept low (15%) so it doesn't block the male voice narration
     }
 
     if (isPlaying) {
-      playGoogleVoiceChunk()
+      bgMusicRef.current.play().catch((e) => console.log("BG Music play deferred:", e))
     } else {
-      if (audioRef.current) audioRef.current.pause()
-      window.speechSynthesis.cancel()
+      if (bgMusicRef.current) bgMusicRef.current.pause()
     }
-  }, [isPlaying, currentChunkIndex, voiceGender, setIsPlaying])
 
+    return () => {
+      if (bgMusicRef.current) bgMusicRef.current.pause()
+    }
+  }, [isPlaying])
+
+  // EFFECT 2: Native Voice Engine Controller
+  useEffect(() => {
+    if (!isPlaying || chunksRef.current.length === 0) {
+      window.speechSynthesis.cancel()
+      return
+    }
+
+    const activeText = chunksRef.current[currentChunkIndex]
+    if (!activeText) return
+
+    window.speechSynthesis.cancel()
+
+    const utterance = new SpeechSynthesisUtterance(activeText)
+    const isHindi = /[\u0900-\u097F]/.test(activeText)
+    
+    utterance.lang = isHindi ? 'hi-IN' : 'en-IN'
+
+    const allVoices = window.speechSynthesis.getVoices()
+    let targetVoice = allVoices.find(v => 
+      v.lang.includes(isHindi ? 'hi' : 'en') && 
+      (voiceGender === 'male' 
+        ? (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('google hindi') || v.name.toLowerCase().includes('ravi') || v.name.toLowerCase().includes('david'))
+        : (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('swara') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('zira')))
+    )
+
+    if (targetVoice) {
+      utterance.voice = targetVoice
+    }
+
+    if (voiceGender === 'male') {
+      utterance.pitch = 0.85 // Deep male voice modulation
+      utterance.rate = 0.88  // Slower pace for eerie horror vibes
+    } else {
+      utterance.pitch = 1.25 
+      utterance.rate = 0.95
+    }
+
+    utterance.onend = () => {
+      if (currentChunkIndex < chunksRef.current.length - 1) {
+        setCurrentChunkIndex(prev => prev + 1)
+      } else {
+        setIsPlaying(false)
+      }
+    }
+
+    utterance.onerror = () => {
+      setIsPlaying(false)
+    }
+
+    window.speechSynthesis.speak(utterance)
+
+  }, [isPlaying, currentChunkIndex, voiceGender])
+
+  // Total cleanup on exit
   useEffect(() => {
     return () => {
-      if (audioRef.current) audioRef.current.pause()
       window.speechSynthesis.cancel()
+      if (bgMusicRef.current) {
+        bgMusicRef.current.pause()
+        bgMusicRef.current = null
+      }
     }
   }, [])
 
   if (!book) return null
-  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Connecting Google Premium Voice Engine...</div>
+  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Initializing Horror Audio Core...</div>
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      {/* Header Container */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-800/50">
         <button 
           onClick={() => {
-            if (audioRef.current) audioRef.current.pause()
             window.speechSynthesis.cancel()
+            if (bgMusicRef.current) bgMusicRef.current.pause()
             setIsPlaying(false)
             navigate({ page: 'home' })
           }} 
@@ -169,7 +168,6 @@ export function ReaderPage() {
         </div>
       </div>
 
-      {/* Main Studio Area */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
         <div className="relative w-64 h-64 rounded-full overflow-hidden shadow-2xl border-4 border-zinc-800">
           <img src={book.cover_url} alt="" className={`w-full h-full object-cover transition-transform duration-1000 ${isPlaying ? 'scale-105' : 'scale-100'}`} />
@@ -178,50 +176,46 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* 🎛️ NATIVE SELECTION SWITCHER PANEL */}
+        {/* GENDER VOICE CHOICES FILTER TABS */}
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
           <button
             onClick={() => {
-              if (audioRef.current) audioRef.current.pause()
+              window.speechSynthesis.cancel()
               setVoiceGender('male')
-              setIsPlaying(false)
               setCurrentChunkIndex(0)
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
           >
             {voiceGender === 'male' ? <UserCheck className="w-4 h-4" /> : <User className="w-4 h-4" />}
-            Indian Male 🇮🇳
+            Male Voice (🇮🇳)
           </button>
           <button
             onClick={() => {
-              if (audioRef.current) audioRef.current.pause()
+              window.speechSynthesis.cancel()
               setVoiceGender('female')
-              setIsPlaying(false)
               setCurrentChunkIndex(0)
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'female' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
           >
             {voiceGender === 'female' ? <UserCheck className="w-4 h-4" /> : <User className="w-4 h-4" />}
-            Indian Female
+            Female Voice
           </button>
         </div>
 
-        {/* Real-time text pipeline tracker */}
         <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 text-center max-h-32 overflow-y-auto no-scrollbar">
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 font-semibold flex items-center justify-center gap-1.5">
-            <Volume2 className="w-3 h-3 text-emerald-400" /> Google Engine Processing: Chunk {currentChunkIndex + 1}
+          <p className="text-xs text-emerald-400 uppercase tracking-wider mb-2 font-semibold flex items-center justify-center gap-1.5 animate-pulse">
+            <Ghost className="w-4 h-4 text-red-500" /> Horror Soundscape Active • Part {currentChunkIndex + 1}
           </p>
           <p className="text-sm text-zinc-300 italic">
-            "{chunksRef.current[currentChunkIndex] || "Preparing Indian Accent Stream..."}"
+            "{chunksRef.current[currentChunkIndex] || "Loading narrative text stream..."}"
           </p>
         </div>
 
-        {/* Controls Layout */}
         <div className="flex items-center gap-6">
           <button 
             disabled={currentChapterIndex === 0}
             onClick={() => {
-              if (audioRef.current) audioRef.current.pause()
+              window.speechSynthesis.cancel()
               setIsPlaying(false)
               setCurrentChapterIndex(prev => Math.max(0, prev - 1))
             }}
@@ -240,7 +234,7 @@ export function ReaderPage() {
           <button 
             disabled={currentChapterIndex >= bookChapters.length - 1}
             onClick={() => {
-              if (audioRef.current) audioRef.current.pause()
+              window.speechSynthesis.cancel()
               setIsPlaying(false)
               setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1))
             }}
