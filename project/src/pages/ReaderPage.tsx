@@ -7,10 +7,9 @@ export function ReaderPage() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   
-  // 🎙️ FREE GENDER CONTROL SELECTION
+  // 🎙️ STABLE FREE LOCAL GENDER CONTROL
   const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male')
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
   const chunksRef = useRef<string[]>([])
 
   // 👻 HORROR AMBIENT BACKGROUND SOUND REF
@@ -34,7 +33,7 @@ export function ReaderPage() {
     ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है."
     : "Welcome to the dark journey. Suspense builds up in the shadows.")
 
-  // SMART SPLITTER: Splits scripts into 300-character chunks
+  // SMART SPLITTER: Splits text into safe, perfectly paced pieces
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -55,11 +54,11 @@ export function ReaderPage() {
 
       chunksRef.current = chunks
       setCurrentChunkIndex(0) 
-      if (audioRef.current) audioRef.current.pause()
+      window.speechSynthesis.cancel()
     }
   }, [textToRead])
 
-  // CONTROL HORROR BACKGROUND SOUND (100% Client-Side Free Loop)
+  // CONTROL HORROR BACKGROUND SOUND (Always Loop)
   useEffect(() => {
     if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav')
@@ -78,76 +77,103 @@ export function ReaderPage() {
     }
   }, [isPlaying])
 
-  // 🚀 KEY-LESS SPEECH STREAMER
+  // 🚀 NATIVE HIGH-QUALITY STREAM CONTEXT WITH HARD FORCED LOADING
   useEffect(() => {
-    async function playUnlimitedVoice() {
-      if (!isPlaying || chunksRef.current.length === 0) return
+    if (!isPlaying || chunksRef.current.length === 0) {
+      window.speechSynthesis.cancel()
+      return
+    }
 
-      const activeText = chunksRef.current[currentChunkIndex]
-      if (!activeText) return
+    const activeText = chunksRef.current[currentChunkIndex]
+    if (!activeText) return
 
-      try {
-        if (audioRef.current) {
-          audioRef.current.pause()
-        }
+    window.speechSynthesis.cancel() // Stop any overlap immediately
 
-        const isHindi = /[\u0900-\u097F]/.test(activeText)
-        const voiceLocale = isHindi ? "hi" : "en"
-        
-        // Pure high-fidelity multi-voice architecture without authentication barriers
-        const ttsStreamUrl = `https://tts.cybcar.ru/tts?text=${encodeURIComponent(activeText)}&lang=${voiceLocale}&voice=${voiceGender === 'male' ? '1' : '2'}`
+    const utterance = new SpeechSynthesisUtterance(activeText)
+    const isHindi = /[\u0900-\u097F]/.test(activeText)
+    
+    utterance.lang = isHindi ? 'hi-IN' : 'en-IN'
 
-        audioRef.current = new Audio(ttsStreamUrl)
+    // This function searches for true Google engine profiles on Android/Chrome
+    const assignBestVoice = () => {
+      const voices = window.speechSynthesis.getVoices()
+      
+      let selectedVoice = voices.find(v => {
+        const name = v.name.toLowerCase()
+        const lang = v.lang.toLowerCase()
+        const targetLang = isHindi ? 'hi' : 'en'
         
         if (voiceGender === 'male') {
-          audioRef.current.playbackRate = 0.86 
+          return lang.includes(targetLang) && (name.includes('male') || name.includes('google hindi') || name.includes('ravi') || name.includes('david'))
         } else {
-          audioRef.current.playbackRate = 0.98
+          return lang.includes(targetLang) && (name.includes('female') || name.includes('swara') || name.includes('zira') || name.includes('heera'))
         }
+      })
 
-        audioRef.current.play().catch(() => {
-          if (audioRef.current) {
-            audioRef.current.src = `https://text-to-speech-api.onrender.com/api/tts?text=${encodeURIComponent(activeText)}&gender=${voiceGender}`
-            audioRef.current.play().catch(e => console.log("Pipeline block:", e))
-          }
-        })
+      // Fallback to any voice matching language if special profiles aren't ready
+      if (!selectedVoice) {
+        selectedVoice = voices.find(v => v.lang.toLowerCase().includes(isHindi ? 'hi' : 'en'))
+      }
 
-        audioRef.current.onended = () => {
-          if (currentChunkIndex < chunksRef.current.length - 1) {
-            setCurrentChunkIndex(prev => prev + 1)
-          } else {
-            setIsPlaying(false)
-          }
-        }
-      } catch (err) {
-        console.error("Audio pipe broken:", err)
+      if (selectedVoice) {
+        utterance.voice = selectedVoice
+      }
+    }
+
+    assignBestVoice()
+
+    // 🎛️ STRICT REAL TIME MODULATION (Bypasses robotic drone feel)
+    if (voiceGender === 'male') {
+      utterance.pitch = 0.70 // Lower pitch to create deep bass
+      utterance.rate = 0.85  // Slower pace for eerie horror atmosphere
+    } else {
+      utterance.pitch = 1.15 // Normal clear female accent
+      utterance.rate = 0.95
+    }
+
+    utterance.onend = () => {
+      if (currentChunkIndex < chunksRef.current.length - 1) {
+        setCurrentChunkIndex(prev => prev + 1)
+      } else {
         setIsPlaying(false)
       }
     }
 
-    if (isPlaying) {
-      playUnlimitedVoice()
-    } else {
-      if (audioRef.current) audioRef.current.pause()
+    utterance.onerror = () => {
+      setIsPlaying(false)
     }
+
+    // Force Android Chrome to register the speaking action
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        assignBestVoice()
+        window.speechSynthesis.speak(utterance)
+      }
+    } else {
+      window.speechSynthesis.speak(utterance)
+    }
+
   }, [isPlaying, currentChunkIndex, voiceGender])
 
   useEffect(() => {
     return () => {
-      if (audioRef.current) audioRef.current.pause()
-      if (bgMusicRef.current) bgMusicRef.current.pause()
+      window.speechSynthesis.cancel()
+      if (bgMusicRef.current) {
+        bgMusicRef.current.pause()
+        bgMusicRef.current = null
+      }
     }
   }, [])
 
   if (!book) return null
-  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Connecting Audio Core Matrix...</div>
+  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Initializing Free Sound Pipeline...</div>
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
       <div className="flex items-center gap-4 p-4 border-b border-zinc-800/50">
         <button 
           onClick={() => {
-            if (audioRef.current) audioRef.current.pause()
+            window.speechSynthesis.cancel()
             if (bgMusicRef.current) bgMusicRef.current.pause()
             setIsPlaying(false)
             navigate({ page: 'home' })
@@ -176,9 +202,8 @@ export function ReaderPage() {
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
           <button
             onClick={() => {
-              if (audioRef.current) audioRef.current.pause()
+              window.speechSynthesis.cancel()
               setVoiceGender('male')
-              setIsPlaying(false)
               setCurrentChunkIndex(0)
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
@@ -188,9 +213,8 @@ export function ReaderPage() {
           </button>
           <button
             onClick={() => {
-              if (audioRef.current) audioRef.current.pause()
+              window.speechSynthesis.cancel()
               setVoiceGender('female')
-              setIsPlaying(false)
               setCurrentChunkIndex(0)
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'female' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
@@ -213,7 +237,7 @@ export function ReaderPage() {
           <button 
             disabled={currentChapterIndex === 0}
             onClick={() => {
-              if (audioRef.current) audioRef.current.pause()
+              window.speechSynthesis.cancel()
               setIsPlaying(false)
               setCurrentChapterIndex(prev => Math.max(0, prev - 1))
             }}
@@ -232,7 +256,7 @@ export function ReaderPage() {
           <button 
             disabled={currentChapterIndex >= bookChapters.length - 1}
             onClick={() => {
-              if (audioRef.current) audioRef.current.pause()
+              window.speechSynthesis.cancel()
               setIsPlaying(false)
               setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1))
             }}
