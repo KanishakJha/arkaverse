@@ -7,12 +7,9 @@ export function ReaderPage() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   
-  // 🎙️ STABLE FREE LOCAL GENDER CONTROL
   const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male')
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const chunksRef = useRef<string[]>([])
-
-  // 👻 HORROR AMBIENT BACKGROUND SOUND REF
   const bgMusicRef = useRef<HTMLAudioElement | null>(null)
 
   const book = books.find((b) => b.id === route.bookId)
@@ -28,14 +25,32 @@ export function ReaderPage() {
     }
   }, [route.bookId])
 
-  const bookChapters = book ? chapters[book.id] || [] : []
+  // 🚀 FALLBACK DUMMY ARRAYS: Agar backend se chapters load nahi huye, toh yeh temporary data engine ko chalaye rakhega
+  const dbChapters = book ? chapters[book.id] || [] : []
+  const bookChapters = dbChapters.length > 0 ? dbChapters : [
+    {
+      id: "dummy-1",
+      title: "एपिसोड एक: अमृत का अभिशाप",
+      content: book?.title.toLowerCase().includes('pralay') 
+        ? "दृश्य एक. अतीत की स्मृतियां. पंद्रह वर्ष पूर्व, गांव के बाहर का बीहड़ वन और चिलचिलाती धूप. ग्रीष्म ऋतु का वह दिन किसी भट्टी की तरह तप रहा था."
+        : "Welcome to chapter one of your selected audiobook series. Darkness begins here."
+    },
+    {
+      id: "dummy-2",
+      title: "एपिसोड दो: गहरा सन्नाटा",
+      content: "शाम को, जब दोनों भाई अपने घर के आंगन में बैठे उस पिल्ले के घावों पर हल्दी और नीम का लेप लगा रहे थे, तभी अचानक पीछे से एक अजीब सी परछाई गुजरी."
+    },
+    {
+      id: "dummy-3",
+      title: "एपिसोड तीन: प्रलय की शुरुआत",
+      content: "केतन भी चतुराई से कदमों को पीछे हटाते हुए, कुत्तों को अपनी मशाल से दूर रखते हुए, वहां से सुरक्षित निकल आया. पर असली खतरा तो अब शुरू होने वाला था."
+    }
+  ]
+
   const activeChapter = bookChapters[currentChapterIndex]
+  const textToRead = activeChapter?.content || "No content found."
 
-  const textToRead = activeChapter?.content || (book?.title.toLowerCase().includes('pralay')
-    ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है."
-    : "Welcome to the dark journey. Suspense builds up in the shadows.")
-
-  // SMART SPLITTER: Splits text into safe chunks for narration
+  // SMART SPLITTER
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -60,7 +75,7 @@ export function ReaderPage() {
     }
   }, [textToRead])
 
-  // CONTROL HORROR BACKGROUND SOUND (Loop)
+  // AMBIENT MUSIC CONTROL
   useEffect(() => {
     if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav')
@@ -79,7 +94,7 @@ export function ReaderPage() {
     }
   }, [isPlaying])
 
-  // LOCAL SPEECH UTTERANCE PIPELINE
+  // AUDIO PLAYER ENGINE
   useEffect(() => {
     if (!isPlaying || chunksRef.current.length === 0) {
       window.speechSynthesis.cancel()
@@ -93,7 +108,6 @@ export function ReaderPage() {
 
     const utterance = new SpeechSynthesisUtterance(activeText)
     const isHindi = /[\u0900-\u097F]/.test(activeText)
-    
     utterance.lang = isHindi ? 'hi-IN' : 'en-IN'
 
     const assignBestVoice = () => {
@@ -113,7 +127,6 @@ export function ReaderPage() {
       if (!selectedVoice) {
         selectedVoice = voices.find(v => v.lang.toLowerCase().includes(isHindi ? 'hi' : 'en'))
       }
-
       if (selectedVoice) utterance.voice = selectedVoice
     }
 
@@ -159,12 +172,11 @@ export function ReaderPage() {
   }, [])
 
   if (!book) return null
-  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Loading Story Workspaces...</div>
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col relative overflow-x-hidden">
       
-      {/* HEADER BAR */}
+      {/* HEADER */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-800/50 justify-between">
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <button 
@@ -186,7 +198,6 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* 🔐 HIDDEN ADMIN ENTRY PORTAL: Route valid check logic */}
         <div>
           <button 
             onClick={() => {
@@ -196,14 +207,13 @@ export function ReaderPage() {
               navigate({ page: 'admin' })
             }}
             className="p-2 bg-zinc-900/40 border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-red-400 transition"
-            title="Author Admin Console"
           >
             <ShieldAlert className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* CORE WORKSPACE LAYER */}
+      {/* CORE PLAYER AREA */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
         <div className="relative w-64 h-64 rounded-full overflow-hidden shadow-2xl border-4 border-zinc-800">
           <img src={book.cover_url} alt="" className={`w-full h-full object-cover transition-transform duration-1000 ${isPlaying ? 'scale-105' : 'scale-100'}`} />
@@ -212,7 +222,7 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* VOICE TOGGLES */}
+        {/* VOICE SWITCH BUTTONS */}
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
           <button
             onClick={() => {
@@ -238,24 +248,26 @@ export function ReaderPage() {
           </button>
         </div>
 
-        {/* LIVE TRACKER SCREEN */}
+        {/* TRACKER PANEL */}
         <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 text-center max-h-32 overflow-y-auto no-scrollbar">
           <p className="text-xs text-emerald-400 uppercase tracking-wider mb-2 font-semibold flex items-center justify-center gap-1.5 animate-pulse">
-            <Ghost className="w-4 h-4 text-red-500" /> Horror Soundscape Active • Part {currentChunkIndex + 1}
+            <Ghost className="w-4 h-4 text-red-500" /> Horror Soundscape Active • {activeChapter?.title}
           </p>
           <p className="text-sm text-zinc-300 italic">
-            "{chunksRef.current[currentChunkIndex] || "Loading story script pipeline..."}"
+            "{chunksRef.current[currentChunkIndex] || "Loading story script..."}"
           </p>
         </div>
 
-        {/* PLAYER ACTION TOGGLES */}
+        {/* NEXT / PREVIOUS NAVIGATION CONTROLS */}
         <div className="flex items-center gap-6">
           <button 
             disabled={currentChapterIndex === 0}
             onClick={() => {
               window.speechSynthesis.cancel()
               setIsPlaying(false)
+              setCurrentChunkIndex(0)
               setCurrentChapterIndex(prev => Math.max(0, prev - 1))
+              setTimeout(() => setIsPlaying(true), 150)
             }}
             className={`p-3 ${currentChapterIndex === 0 ? 'text-zinc-700' : 'text-zinc-400 hover:text-white'}`}
           >
@@ -274,14 +286,8 @@ export function ReaderPage() {
             onClick={() => {
               window.speechSynthesis.cancel()
               setIsPlaying(false)
+              setCurrentChunkIndex(0)
               setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1))
+              setTimeout(() => setIsPlaying(true), 150)
             }}
-            className={`p-3 ${currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-700' : 'text-zinc-400 hover:text-white'}`}
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
+            className={`p-3 ${currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-700' : 'text-zinc-400 hover:text-white
