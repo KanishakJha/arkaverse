@@ -92,11 +92,7 @@ export function ReaderPage() {
         }
 
         const isHindi = /[\u0900-\u097F]/.test(activeText)
-        
-        // 🎙️ High-Quality Edge Speech Pipeline Logic
-        // For Hindi Male: 'hi-IN-Madhur', English Male: 'en-IN-Prabhat'
         const locale = isHindi ? "hi-IN" : "en-IN"
-        const voiceVariant = voiceGender === 'male' ? 'male-deep' : 'female-smooth'
 
         // Directly pulling pure native audio files from translation matrix node without any API Keys
         const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${locale}&client=tw-ob&q=${encodeURIComponent(activeText)}`
