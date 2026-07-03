@@ -1,19 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, BookOpen, Headphones, Type, Minus, Plus, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight, Headphones, Play, Pause, Lock, Sparkles, ShieldCheck } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
-import { KineticText } from '../components/reader/KineticText'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { Slider } from '../components/ui/slider'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import type { TypographyMode } from '../types'
-
-const TYPOGRAPHY_MODES: { value: TypographyMode; label: string }[] = [
-  { value: 'sans', label: 'Standard' },
-  { value: 'serif', label: 'Editorial' },
-  { value: 'focus', label: 'Focus' },
-  { value: 'dyslexia', label: 'Dyslexia' },
-]
 
 export function ReaderPage() {
   const {
@@ -22,19 +11,12 @@ export function ReaderPage() {
     chapters,
     fetchChapters,
     navigate,
-    updateProgress,
-    typographyMode,
-    setTypographyMode,
-    fontSize,
-    setFontSize,
     isPlaying,
     setIsPlaying,
-    playbackSpeed,
-    setPlaybackSpeed,
     setCurrentTrack,
   } = useApp()
 
-  const bookId = (route as any).bookId || '';
+  const bookId = (route as any).bookId || ''
   const book = books.find((b) => b.id === bookId)
   const bookChapters = chapters[bookId] ?? []
   
@@ -43,11 +25,10 @@ export function ReaderPage() {
   })
 
   const chapter = bookChapters.find((c) => c.chapter_number === chapterNum)
-  const [readingPct, setReadingPct] = useState(0)
-  const [showControls, setShowControls] = useState(true)
-  const [showTypoPanel, setShowTypoPanel] = useState(false)
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const containerRef = useRef<HTMLDivElement>(null)
+
+  // ✨ SUBSCRIPTION CHECK SIMULATOR: Aap is state ko user login profile token se bind kar sakte ho
+  // Abhi ke liye hum ise false rakh rahe hain taaki locked content par premium lock-screen test ho sake!
+  const [isUserVIP, setIsUserVIP] = useState(false)
 
   useEffect(() => {
     if (bookId) {
@@ -55,33 +36,15 @@ export function ReaderPage() {
     }
   }, [bookId, fetchChapters])
 
+  // Track status verification and loader engine trigger
+  const isTrackLocked = chapter ? ((chapter as any).is_audio_premium || (chapter as any).is_locked || false) : false
+  const isAccessDenied = isTrackLocked && !isUserVIP
+
   useEffect(() => {
-    if (chapter && book) {
+    if (chapter && book && !isAccessDenied) {
       setCurrentTrack(book, chapter)
     }
-  }, [chapter, book, setCurrentTrack])
-
-  useEffect(() => {
-    function handleScroll() {
-      setShowControls(false)
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
-      scrollTimerRef.current = setTimeout(() => setShowControls(true), 2000)
-
-      const el = containerRef.current
-      if (el) {
-        const scrolled = el.scrollTop
-        const total = el.scrollHeight - el.clientHeight
-        if (total > 0) {
-          const pct = Math.min(100, (scrolled / total) * 100)
-          setReadingPct(pct)
-          if (book) updateProgress(book.id, pct, 0, chapterNum)
-        }
-      }
-    }
-    const el = containerRef.current
-    el?.addEventListener('scroll', handleScroll)
-    return () => el?.removeEventListener('scroll', handleScroll)
-  }, [book, chapterNum, updateProgress])
+  }, [chapter, book, isAccessDenied, setCurrentTrack])
 
   function goChapter(delta: number) {
     const next = chapterNum + delta
@@ -89,210 +52,143 @@ export function ReaderPage() {
     if (found) {
       setChapterNum(next)
       setIsPlaying(false)
-      containerRef.current?.scrollTo({ top: 0 })
       navigate({ page: 'reader', bookId, chapterNum: next })
     }
   }
-
-  const hasPrev = bookChapters.some((c) => c.chapter_number === chapterNum - 1)
-  const hasNext = bookChapters.some((c) => c.chapter_number === chapterNum + 1)
-  const wordCount = chapter?.word_count ?? 0
-  const minutesLeft = Math.max(1, Math.round((wordCount * (1 - readingPct / 100)) / 200))
-  const typographyClass = `reader-${typographyMode}`
 
   if (!book || !chapter) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#f8fafc] text-slate-500">
         <div className="text-center">
-          <BookOpen className="size-10 text-slate-300 animate-pulse mx-auto mb-3" />
-          <p className="text-xs font-medium tracking-wide">Syncing text matrix and streams…</p>
+          <Headphones className="size-10 text-slate-300 animate-bounce mx-auto mb-3" />
+          <p className="text-xs font-medium tracking-wide">Connecting Fablex Audio Streams…</p>
         </div>
       </div>
     )
   }
 
+  const hasPrev = bookChapters.some((c) => c.chapter_number === chapterNum - 1)
+  const hasNext = bookChapters.some((c) => c.chapter_number === chapterNum + 1)
+
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-[#f8fafc] text-slate-900 font-sans">
+    <div className="h-screen w-screen flex flex-col justify-between bg-[#f8fafc] text-slate-900 font-sans overflow-hidden">
       
-      {/* 🧭 NAVIGATION HEADER BAR */}
-      <div
-        className={`fixed top-14 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200/60 transition-all duration-500 ${
-          showControls ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
-        }`}
-      >
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 h-12 flex items-center justify-between gap-4">
-          <div className="flex items-center min-w-0">
-            <span className="text-xs font-semibold text-slate-800 truncate">
-              Chapter {chapter.chapter_number}: {chapter.title}
-            </span>
+      {/* TOP NAVIGATION BAR */}
+      <div className="bg-white border-b border-slate-200/60 px-4 py-3 sticky top-14 left-0 right-0 z-40">
+        <div className="mx-auto max-w-xl flex items-center justify-between">
+          <div className="min-w-0">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest truncate">{book.title}</h2>
+            <p className="text-xs font-semibold text-slate-700 truncate mt-0.5">Track {chapter.chapter_number}: {chapter.title}</p>
           </div>
+          <Badge variant="outline" className={`text-[10px] px-2 py-0.5 font-bold ${isTrackLocked ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+            {isTrackLocked ? 'VIP PREMIUM' : 'FREE EPISODE'}
+          </Badge>
+        </div>
+      </div>
+
+      {/* CORE AUDIOBOARD INTERFACE BODY */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6">
+        <div className="max-w-sm w-full bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xl shadow-slate-100/70 text-center relative overflow-hidden">
           
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge variant="outline" className="text-[11px] border-slate-200 text-slate-500 bg-slate-50 px-2 font-medium hidden sm:flex">
-              {minutesLeft}m left
-            </Badge>
-            <Badge variant="outline" className="text-[11px] border-slate-200 text-slate-500 bg-slate-50 px-2 font-medium hidden sm:flex">
-              {Math.round(readingPct)}% read
-            </Badge>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-lg"
-              onClick={() => setShowTypoPanel(!showTypoPanel)}
-            >
-              <Type className="size-4" />
-            </Button>
-            
-            <Button
-              size="sm"
-              className="h-8 gap-1.5 text-xs font-semibold px-3.5 shadow-sm rounded-lg transition-all"
-              style={isPlaying ? {
-                background: '#0f172a',
-                color: 'white',
-              } : {
-                background: '#ffffff',
-                color: '#0f172a',
-                border: '1px solid #cbd5e1'
-              }}
-              onClick={() => setIsPlaying(!isPlaying)}
-            >
-              <Headphones className="size-3.5" />
-              {isPlaying ? 'Listening' : 'Listen Audio'}
-            </Button>
-          </div>
-        </div>
-
-        {/* TYPOGRAPHY CONTROL HOVER BOX */}
-        {showTypoPanel && (
-          <div className="border-t border-slate-100 bg-slate-50 px-4 sm:px-6 py-2.5">
-            <div className="mx-auto max-w-3xl flex flex-wrap items-center gap-5">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-500">Style</span>
-                <Select
-                  value={typographyMode}
-                  onValueChange={(v) => setTypographyMode(v as TypographyMode)}
+          {isAccessDenied ? (
+            /* 🔒 PAYWALL LOCK SCREEN PANEL */
+            <div className="py-8 px-4 flex flex-col items-center justify-center animate-page-flip-right">
+              <div className="size-16 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-center mb-5 text-amber-500 shadow-sm">
+                <Lock className="size-7" />
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">This Episode is Locked</h3>
+              <p className="text-xs text-slate-400 mt-2 max-w-[240px] mx-auto leading-relaxed">
+                Unlock the complete series and ad-free high fidelity experience by upgrading to a Fablex VIP Membership.
+              </p>
+              
+              <div className="mt-8 w-full space-y-2.5">
+                <Button 
+                  onClick={() => alert("Redirecting to Fablex Payment Gateway Integration Panel…")}
+                  className="w-full bg-slate-900 hover:bg-black text-white text-xs font-bold h-10 rounded-xl shadow-md flex items-center justify-center gap-2"
                 >
-                  <SelectTrigger className="h-7 text-xs w-28 bg-white border-slate-200 text-slate-800 rounded-md">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TYPOGRAPHY_MODES.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-medium text-slate-500 mr-1">Scale</span>
-                <Button variant="outline" size="icon" className="size-7 bg-white border-slate-200" onClick={() => setFontSize(Math.max(14, fontSize - 1))}>
-                  <Minus className="size-3 text-slate-600" />
+                  <Sparkles className="size-3.5 text-amber-400 fill-current" />
+                  Upgrade to VIP Membership
                 </Button>
-                <span className="text-xs font-bold px-1.5 text-slate-700 min-w-[24px] text-center">{fontSize}</span>
-                <Button variant="outline" size="icon" className="size-7 bg-white border-slate-200" onClick={() => setFontSize(Math.min(28, fontSize + 1))}>
-                  <Plus className="size-3 text-slate-600" />
-                </Button>
+                <button 
+                  onClick={() => setIsUserVIP(true)} 
+                  className="text-[10px] font-bold text-slate-400 hover:text-slate-900 transition-colors block mx-auto pt-2"
+                >
+                  (Bypass/Simulate Success Account)
+                </button>
               </div>
-              
-              {isPlaying && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-slate-500">Speed</span>
-                  <div className="w-20">
-                    <Slider
-                      min={0.5} max={3} step={0.25}
-                      value={[playbackSpeed]}
-                      onValueChange={([v]: [number]) => setPlaybackSpeed(v)}
-                      className="h-1"
-                    />
-                  </div>
-                  <span className="text-xs font-bold text-slate-600">{playbackSpeed}x</span>
-                </div>
-              )}
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 ml-auto text-slate-400 hover:text-slate-700"
-                onClick={() => setShowTypoPanel(false)}
-              >
-                <X className="size-4" />
-              </Button>
             </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            /* 🎵 ACTIVE PREMIUM AUDIO PLAYER LAYOUT */
+            <div className="flex flex-col items-center animate-page-flip-right">
+              {/* Spinning Album Disc Artwork Cover */}
+              <div className="relative group mb-6">
+                <div className={`size-48 rounded-full border-4 border-slate-100 shadow-xl overflow-hidden shadow-slate-200/80 transition-transform duration-[4000ms] ease-linear ${isPlaying ? 'rotate-360 animate-spin' : ''}`}>
+                  {book.cover_url ? (
+                    <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-300">
+                      <Headphones className="size-12" />
+                    </div>
+                  )}
+                </div>
+                <div className="absolute inset-0 size-6 bg-white rounded-full border border-slate-200 shadow-inner m-auto z-10" />
+              </div>
 
-      {/* Progress Slider Line */}
-      <div className="fixed top-14 left-0 right-0 h-0.5 z-40 bg-slate-200/50">
-        <div
-          className="h-full bg-slate-900 transition-all duration-300"
-          style={{ width: `${readingPct}%` }}
-        />
-      </div>
+              {/* Episode Title Grid */}
+              <div className="mb-8 px-2">
+                <h3 className="text-base font-bold text-slate-900 truncate">{chapter.title}</h3>
+                <p className="text-xs text-slate-400 truncate mt-1">Narrated by {book.author}</p>
+              </div>
 
-      {/* 📖 TEXT CONTENT WORKSPACE AREA */}
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-y-auto pt-32 pb-40 px-4 sm:px-6 custom-scrollbar"
-      >
-        <div className="mx-auto max-w-[65ch]">
-          <div className="mb-10 text-center">
-            <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-slate-400 mb-2">
-              Chapter {chapter.chapter_number}
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-              {chapter.title}
-            </h1>
-            <div className="mx-auto mt-4 h-[2px] w-12 rounded bg-slate-200" />
-          </div>
+              {/* Floating Trigger Audio Button Control */}
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className={`size-16 rounded-full flex items-center justify-center shadow-xl transform active:scale-95 transition-all text-white ${isPlaying ? 'bg-slate-900 shadow-slate-900/20' : 'bg-emerald-500 shadow-emerald-500/20'}`}
+              >
+                {isPlaying ? <Pause className="size-6 fill-current" /> : <Play className="size-6 fill-current ml-1" />}
+              </button>
 
-          {/* DYNAMIC TEXT RENDER PIPELINE */}
-          <div className="text-slate-800 leading-relaxed font-normal antialiased protected-content">
-            <KineticText
-              content={chapter.content}
-              isPlaying={isPlaying}
-              playbackSpeed={playbackSpeed}
-              typographyClass={typographyClass}
-              fontSize={fontSize}
-              onProgress={(pct: number) => {
-                if (book) updateProgress(book.id, Math.max(readingPct, pct), 0, chapterNum)
-              }}
-            />
-          </div>
+              <div className="mt-6 flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
+                <ShieldCheck className="size-3.5" />
+                <span>Streaming Secured by Fablex</span>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
-      {/* 🧭 CHAPTER NAVIGATION BUTTONS */}
-      <div
-        className={`fixed bottom-24 left-0 right-0 z-30 flex justify-center gap-3 transition-all duration-500 ${
-          showControls ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-        }`}
-      >
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 h-8 bg-white border-slate-200/80 hover:bg-slate-50 text-xs shadow-sm font-semibold rounded-lg text-slate-700"
-          disabled={!hasPrev}
-          onClick={() => goChapter(-1)}
-        >
-          <ChevronLeft className="size-4" />
-          Previous
-        </Button>
-        <span className="flex items-center text-xs font-bold text-slate-400 px-3 bg-white border border-slate-200/60 rounded-lg shadow-sm">
-          {chapterNum} / {bookChapters.length}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 h-8 bg-white border-slate-200/80 hover:bg-slate-50 text-xs shadow-sm font-semibold rounded-lg text-slate-700"
-          disabled={!hasNext}
-          onClick={() => goChapter(1)}
-        >
-          Next
-          <ChevronRight className="size-4" />
-        </Button>
+      {/* BOTTOM CONTROL SEQUENCE BUTTONS BAR */}
+      <div className="bg-white border-t border-slate-200/60 px-4 py-4 mb-20">
+        <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-9 bg-white border-slate-200 text-xs font-bold rounded-xl text-slate-700"
+            disabled={!hasPrev}
+            onClick={() => goChapter(-1)}
+          >
+            <ChevronLeft className="size-4" />
+            Previous
+          </Button>
+          
+          <span className="text-xs font-bold text-slate-400 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+            {chapterNum} / {bookChapters.length} Episodes
+          </span>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-9 bg-white border-slate-200 text-xs font-bold rounded-xl text-slate-700"
+            disabled={!hasNext}
+            onClick={() => goChapter(1)}
+          >
+            Next
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
       </div>
+
     </div>
   )
 }
