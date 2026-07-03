@@ -6,7 +6,6 @@ export function ReaderPage() {
   const { route, books, chapters, fetchChapters, isPlaying, setIsPlaying, navigate } = useApp()
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   
-  // 🎙️ STABLE LOCAL GENDER CONTROL
   const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male')
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const chunksRef = useRef<string[]>([])
@@ -22,7 +21,6 @@ export function ReaderPage() {
     }
   }, [route.bookId, fetchChapters])
 
-  // 🚀 FALLBACK DUMMY ARRAYS FOR PREVIEW & TESTING
   const dbChapters = book ? chapters[book.id] || [] : []
   const bookChapters = dbChapters.length > 0 ? dbChapters : [
     {
@@ -33,19 +31,13 @@ export function ReaderPage() {
     {
       id: "dummy-2",
       title: "एपिसोड दो: गहरा सन्नाटा",
-      content: "शाम को, जब दोनों भाई अपने घर के आंगन में बैठे उस पिल्ले के घावों पर हल्दी और नीम का लेप लगा रहे थे, तभी अचानक पीछे से एक अजीब सी परछाई गुजरी."
-    },
-    {
-      id: "dummy-3",
-      title: "एपिसोड तीन: प्रलय की शुरुआत",
-      content: "केतन भी चतुराई से कदमों को पीछे हटाते हुए, कुत्तों को अपनी मशाल से दूर रखते हुए, वहां से सुरक्षित निकल आया. पर असली खतरा तो अब शुरू होने वाला था."
+      content: "शाम को, जब दोनों भाई अपने घर के '), आंगन में बैठे उस पिल्ले के घावों पर हल्दी और नीम का लेप लगा रहे थे, तभी अचानक पीछे से एक अजीब सी परछाई गुजरी."
     }
   ]
 
   const activeChapter = bookChapters[currentChapterIndex]
   const textToRead = activeChapter?.content || "No content found."
 
-  // SMART SPLITTER: Splits text into safe chunks for narration
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -53,7 +45,7 @@ export function ReaderPage() {
       let currentChunk = ""
 
       sentences.forEach((sentence) => {
-        if ((currentChunk + sentence).length > 300) {
+        if ((currentChunk + sentence).length > 250) {
           chunks.push(currentChunk.trim())
           currentChunk = sentence
         } else {
@@ -70,12 +62,11 @@ export function ReaderPage() {
     }
   }, [textToRead])
 
-  // CONTROL HORROR BACKGROUND SOUND (Loop)
   useEffect(() => {
     if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav')
       bgMusicRef.current.loop = true
-      bgMusicRef.current.volume = 0.12 
+      bgMusicRef.current.volume = 0.10 
     }
 
     if (isPlaying) {
@@ -89,7 +80,7 @@ export function ReaderPage() {
     }
   }, [isPlaying])
 
-  // LOCAL SPEECH UTTERANCE PIPELINE
+  // 🚀 RELIABLE FREE VOICE GENERATION PIPELINE
   useEffect(() => {
     if (!isPlaying || chunksRef.current.length === 0) {
       window.speechSynthesis.cancel()
@@ -105,34 +96,40 @@ export function ReaderPage() {
     const isHindi = /[\u0900-\u097F]/.test(activeText)
     utterance.lang = isHindi ? 'hi-IN' : 'en-IN'
 
-    const assignBestVoice = () => {
+    const selectSystemVoice = () => {
       const voices = window.speechSynthesis.getVoices()
-      let selectedVoice = voices.find(v => {
+      const targetLang = isHindi ? 'hi' : 'en'
+
+      let voice = voices.find(v => {
         const name = v.name.toLowerCase()
         const lang = v.lang.toLowerCase()
-        const targetLang = isHindi ? 'hi' : 'en'
-        
+        const matchesLang = lang.includes(targetLang)
+
         if (voiceGender === 'male') {
-          return lang.includes(targetLang) && (name.includes('male') || name.includes('google hindi') || name.includes('ravi') || name.includes('david'))
+          return matchesLang && (name.includes('google') || name.includes('male') || name.includes('ravi') || name.includes('david'))
         } else {
-          return lang.includes(targetLang) && (name.includes('female') || name.includes('swara') || name.includes('zira'))
+          return matchesLang && (name.includes('female') || name.includes('swara') || name.includes('zira') || name.includes('heera'))
         }
       })
 
-      if (!selectedVoice) {
-        selectedVoice = voices.find(v => v.lang.toLowerCase().includes(isHindi ? 'hi' : 'en'))
+      if (!voice) {
+        voice = voices.find(v => v.lang.toLowerCase().includes(targetLang))
       }
-      if (selectedVoice) utterance.voice = selectedVoice
+
+      if (voice) {
+        utterance.voice = voice
+      }
     }
 
-    assignBestVoice()
+    selectSystemVoice()
 
+    // Professional pacing adjustments to give a serious narrative depth
     if (voiceGender === 'male') {
-      utterance.pitch = 0.70 
+      utterance.pitch = 0.75 
       utterance.rate = 0.85  
     } else {
-      utterance.pitch = 1.15 
-      utterance.rate = 0.95
+      utterance.pitch = 1.05 
+      utterance.rate = 0.92
     }
 
     utterance.onend = () => {
@@ -143,11 +140,13 @@ export function ReaderPage() {
       }
     }
 
-    utterance.onerror = () => setIsPlaying(false)
+    utterance.onerror = () => {
+      setIsPlaying(false)
+    }
 
     if (window.speechSynthesis.getVoices().length === 0) {
       window.speechSynthesis.onvoiceschanged = () => {
-        assignBestVoice()
+        selectSystemVoice()
         window.speechSynthesis.speak(utterance)
       }
     } else {
@@ -170,8 +169,6 @@ export function ReaderPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col relative overflow-x-hidden">
-      
-      {/* HEADER BAR */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-800/50 justify-between">
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <button 
@@ -193,7 +190,6 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* SECURE HIDDEN PORTAL ACCESS TO ADMIN LAYOUT */}
         <div>
           <button 
             onClick={() => {
@@ -209,7 +205,6 @@ export function ReaderPage() {
         </div>
       </div>
 
-      {/* CORE PLAYER INTERFACE CONTAINER */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
         <div className="relative w-64 h-64 rounded-full overflow-hidden shadow-2xl border-4 border-zinc-800">
           <img src={book.cover_url} alt="" className={`w-full h-full object-cover transition-transform duration-1000 ${isPlaying ? 'scale-105' : 'scale-100'}`} />
@@ -218,7 +213,6 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* VOICE FILTER MULTI-TABS */}
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
           <button
             onClick={() => {
@@ -228,7 +222,7 @@ export function ReaderPage() {
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
           >
-            {voiceGender === 'male' ? <UserCheck className="w-4 h-4" /> : <User className="w-4 h-4" />}
+            <UserCheck className="w-4 h-4" />
             Male Voice (🇮🇳)
           </button>
           <button
@@ -239,22 +233,17 @@ export function ReaderPage() {
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'female' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
           >
-            {voiceGender === 'female' ? <UserCheck className="w-4 h-4" /> : <User className="w-4 h-4" />}
+            <User className="w-4 h-4" />
             Female Voice
           </button>
         </div>
 
-        {/* TRACK STATUS BOARD MONITOR */}
         <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 text-center max-h-32 overflow-y-auto no-scrollbar">
-          <p className="text-xs text-emerald-400 uppercase tracking-wider mb-2 font-semibold flex items-center justify-center gap-1.5 animate-pulse">
-            <Ghost className="w-4 h-4 text-red-500" /> Horror Soundscape Active • {activeChapter?.title}
-          </p>
           <p className="text-sm text-zinc-300 italic">
-            "{chunksRef.current[currentChunkIndex] || "Loading story script..."}"
+            "{chunksRef.current[currentChunkIndex] || "Loading narrative text..."}"
           </p>
         </div>
 
-        {/* MEDIA PIPELINE TIMELINE TRIPPERS */}
         <div className="flex items-center gap-6">
           <button 
             disabled={currentChapterIndex === 0}
