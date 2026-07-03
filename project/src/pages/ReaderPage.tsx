@@ -3,7 +3,7 @@ import { useApp } from '../contexts/AppContext'
 import { Play, Pause, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export function ReaderPage() {
-  const { route, books, navigate, isPlaying, setIsPlaying, currentTrack, setCurrentTrack } = useApp()
+  const { route, books, isPlaying, setIsPlaying } = useApp()
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // 1. Target Active Book data row elements securely
@@ -19,7 +19,7 @@ export function ReaderPage() {
     // Bind state management hooks directly to player engine
     if (isPlaying) {
       audioRef.current.play().catch(() => {
-        console.log("Browser blocked autoplay requirement context trigger.");
+        console.log("Browser blocked autoplay requirement context trigger.")
       })
     } else {
       audioRef.current.pause()
