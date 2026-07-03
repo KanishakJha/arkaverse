@@ -61,7 +61,7 @@ export function ReaderPage() {
     }
   }, [textToRead, setIsPlaying])
 
-  // ElevenLabs Dynamic Stream Controller with Premium Indian Voice Swapping
+  // ElevenLabs Dynamic Stream Controller with Premium Fixed Indian Voice Swapping
   useEffect(() => {
     async function playCurrentChunk() {
       if (!isPlaying || chunksRef.current.length === 0) return
@@ -71,18 +71,20 @@ export function ReaderPage() {
 
       try {
         const API_KEY = "sk_1cec648b44208dded5f713cd2ebc8efc9fb14dd023792ac2" 
-        const modelId = "eleven_multilingual_v2"
         
-        // 🚀 CRITICAL FIX: Explicit Indian Accents to separate Male and Female completely
-        // Male ID: 'N2lVS1w4EtoT3Y4AJS8L' (Deep Indian English/Hindi Male Narrator)
-        // Female ID: 'EXAVITQu4vr4xnSDxMaL' (Soft Indian English/Hindi Female Voice)
+        // 🚀 ELEVENLABS TURBO MODEL FOR LOWER LATENCY AND BETTER ACCENT SELECTION
+        const modelId = "eleven_turbo_v2_5"
+        
+        // 🔥 ABSOLUTE FIXED VOICES:
+        // Male ID: 'N2lVS1w4EtoT3Y4AJS8L' (Brian - Universal Deep Professional Narrator Voice)
+        // Female ID: 'EXAVITQu4vr4xnSDxMaL' (Bella - Clear crisp narrative female voice)
         let voiceId = voiceGender === 'female' ? 'EXAVITQu4vr4xnSDxMaL' : 'N2lVS1w4EtoT3Y4AJS8L'
 
         if (audioRef.current) {
           audioRef.current.pause()
         }
 
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -92,8 +94,8 @@ export function ReaderPage() {
             text: activeText,
             model_id: modelId,
             voice_settings: { 
-              stability: 0.30, // Lower stability makes it sound less like a machine and more like an active human actor
-              similarity_boost: 0.90, // Higher boost forces ElevenLabs to follow the exact voice type completely
+              stability: 0.40, // Reduced stability for more human-like dynamic emotions
+              similarity_boost: 0.85, // Forced cloning similarity match
               style: 0.10,
               use_speaker_boost: true
             }
@@ -181,12 +183,14 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* 🎛️ GENDER VOICE CHOICES FILTER TABS */}
+        {/* 🎛️ NEW GENDER VOICE CHOICES FILTER TABS */}
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
           <button
             onClick={() => {
+              if (audioRef.current) audioRef.current.pause()
               setVoiceGender('male')
-              if (isPlaying) { setCurrentChunkIndex(0); }
+              setIsPlaying(false)
+              setCurrentChunkIndex(0)
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
           >
@@ -195,8 +199,10 @@ export function ReaderPage() {
           </button>
           <button
             onClick={() => {
+              if (audioRef.current) audioRef.current.pause()
               setVoiceGender('female')
-              if (isPlaying) { setCurrentChunkIndex(0); }
+              setIsPlaying(false)
+              setCurrentChunkIndex(0)
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'female' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
           >
