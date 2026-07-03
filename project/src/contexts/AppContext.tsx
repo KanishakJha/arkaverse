@@ -88,8 +88,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mixerOpen, setMixerOpen] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
 
+  // Sync initial history state for the home page
   useEffect(() => {
+    if (!window.history.state) {
+      window.history.replaceState({ page: 'home' }, '', '/');
+    }
     loadBooks();
+  }, []);
+
+  // Handle browser back and forward navigation updates cleanly
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.page) {
+        setRoute({ 
+          page: event.state.page,
+          bookId: event.state.bookId,
+          chapterNum: event.state.chapterNum
+        });
+      } else {
+        setRoute({ page: 'home' });
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   async function loadBooks() {
@@ -175,12 +197,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await loadBooks();
   }
 
-  function navigate(newRoute: RouteState) {
-    setRoute(newRoute);
+  function navigate(nextRoute: RouteState) {
+    setRoute(nextRoute);
+    
+    // Push state to browser history so 'Back' button alters application state instead of exiting
+    if (nextRoute.page === 'home') {
+      window.history.pushState({ page: 'home' }, '', '/');
+    } else {
+      window.history.pushState(
+        { 
+          page: nextRoute.page, 
+          bookId: nextRoute.bookId, 
+          chapterNum: nextRoute.chapterNum 
+        }, 
+        '', 
+        `/${nextRoute.page}`
+      );
+    }
   }
 
   function updateProgress(bookId: string, pct: number, dummy: number, chapterNum: number) {
-    // Consuming parameters to prevent strict unused compilation errors
     const syncLog = { bookId, pct, dummy, chapterNum };
     return syncLog;
   }
