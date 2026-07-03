@@ -15,7 +15,7 @@ export function ReaderPage() {
   // 👻 HORROR AMBIENT BACKGROUND SOUND REF
   const bgMusicRef = useRef<HTMLAudioElement | null>(null)
 
-  // 🛠️ AUTHOR PANEL MODAL STATES (Bypasses Route String Type Errors)
+  // 🛠️ AUTHOR PANEL MODAL STATES
   const [isEditingBook, setIsEditingBook] = useState(false)
   const [isAddingChapter, setIsAddingChapter] = useState(false)
 
@@ -26,14 +26,17 @@ export function ReaderPage() {
 
   const book = books.find((b) => b.id === route.bookId)
   
+  // 🔐 FIXED: Removed fetchChapters from dependency array to break the infinite loading loop
   useEffect(() => {
     if (route.bookId) {
       setLoading(true)
       fetchChapters(route.bookId).then(() => {
         setLoading(false)
+      }).catch(() => {
+        setLoading(false)
       })
     }
-  }, [route.bookId, fetchChapters])
+  }, [route.bookId])
 
   useEffect(() => {
     if (book) {
@@ -173,13 +176,11 @@ export function ReaderPage() {
 
   // Action Handle Stubs
   const handleSaveBookDetails = () => {
-    // Backend API trigger logic hooks here
     console.log("Saving new book title configuration:", editTitle)
     setIsEditingBook(false)
   }
 
   const handleCreateNewChapter = () => {
-    // Backend API array insertion logic hooks here
     console.log("Submitting chapter payload:", { newChapterTitle, newChapterContent })
     setIsAddingChapter(false)
     setNewChapterTitle('')
@@ -214,7 +215,7 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* AUTHOR CONTROLS: Controlled locally to avoid type mismatch errors */}
+        {/* AUTHOR CONTROLS */}
         <div className="flex items-center gap-2">
           <button 
             onClick={() => {
@@ -271,7 +272,7 @@ export function ReaderPage() {
         </div>
       )}
 
-      {/* OVERLAY PANEL 2: PRODUCTION UNIT FOR ADDING CHAPTERS */}
+      {/* OVERLAY PANEL 2: ADD CHAPTERS */}
       {isAddingChapter && (
         <div className="absolute inset-0 bg-zinc-950/95 z-50 p-6 flex flex-col justify-start space-y-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
@@ -297,7 +298,7 @@ export function ReaderPage() {
             <textarea 
               value={newChapterContent}
               onChange={(e) => setNewChapterContent(e.target.value)}
-              className="w-full flex-1 min-h-[150px] bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500 transition resize-none layout-script"
+              className="w-full flex-1 min-h-[150px] bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500 transition resize-none"
               placeholder="Type or paste your horror thriller narration text here..."
             />
           </div>
