@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Trash2, Plus, ArrowLeft, Headphones, Edit2 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { Trash2, Plus, ArrowLeft, Headphones, Edit2, Upload } from 'lucide-react'
 
 export function AdminPage() {
   const { books, fetchChapters, addBook, updateBook, deleteBook, navigate } = useApp()
@@ -16,6 +17,9 @@ export function AdminPage() {
   const [coverUrl, setCoverUrl] = useState('')
   const [chapterTitle, setChapterTitle] = useState('Chapter 1')
   const [chapterContent, setChapterContent] = useState('')
+  
+  // Upload state tracker
+  const [uploading, setUploading] = useState(false)
 
   // Trigger content loading when selecting an audio row for editing
   const handleSelectEdit = async (bookItem: any) => {
@@ -33,6 +37,40 @@ export function AdminPage() {
     } else {
       setChapterTitle('Chapter 1')
       setChapterContent('')
+    }
+  }
+
+  // Manual Photo Cover Upload Handler via Supabase Storage
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true)
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('You must select an image to upload.')
+      }
+
+      const file = event.target.files[0]
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `covers/${fileName}`
+
+      // Upload file to the 'fablex-assets' bucket
+      const { error: uploadError } = await supabase.storage
+        .from('fablex-assets')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      // Get public URL link for database schema row matching
+      const { data } = supabase.storage
+        .from('fablex-assets')
+        .getPublicUrl(filePath)
+
+      setCoverUrl(data.publicUrl)
+      alert('Photo cover uploaded successfully!')
+    } catch (error: any) {
+      alert(error.message || 'Error uploading file')
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -62,20 +100,18 @@ export function AdminPage() {
 
     try {
       if (editingBookId) {
-        // Update operational target path
         await updateBook(editingBookId, bookPayload, chapterPayload)
         alert('Audio Series Updated Safely!')
       } else {
-        // Creative addition path
         await addBook(bookPayload, chapterPayload)
         alert('New Audio Series Published Successfully!')
       }
       
-      // Reset layout variables
       setEditingBookId(null)
       setTitle('')
       setAuthor('')
       setSynopsis('')
+      setCoverUrl('')
       setChapterContent('')
       setChapterTitle('Chapter 1')
     } catch (err) {
@@ -159,6 +195,7 @@ export function AdminPage() {
                   setTitle('')
                   setAuthor('')
                   setSynopsis('')
+                  setCoverUrl('')
                   setChapterContent('')
                   setChapterTitle('Chapter 1')
                 }}
@@ -196,30 +233,3 @@ export function AdminPage() {
                 <option value="Mystery">Mystery</option>
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-400">Cover Poster URL</label>
-              <input type="text" value={coverUrl} onChange={e => setCoverUrl(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-700" placeholder="https://example.com/image.jpg" />
-            </div>
-          </div>
-
-          {/* AI Voice Lab Workspace Card */}
-          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3">
-            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-              1. AI Voice Lab (Paste Story Script)
-            </h3>
-            <div className="space-y-1">
-              <input type="text" value={chapterTitle} onChange={e => setChapterTitle(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-300 focus:outline-none" placeholder="Chapter Track Title" />
-            </div>
-            <div className="space-y-1">
-              <textarea value={chapterContent} onChange={e => setChapterContent(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-300 h-24 focus:outline-none resize-none" placeholder="Apni kahani ya chapter ka poora text yahan paste karo bhai... AI isi text ko pure audio stream mein convert karega." />
-            </div>
-          </div>
-
-          <button onClick={handlePublish} className="w-full py-3 bg-white text-black font-semibold text-sm rounded-xl hover:bg-zinc-200 transition flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" /> {editingBookId ? 'Save Changes' : 'Publish Audio Series Catalog'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
