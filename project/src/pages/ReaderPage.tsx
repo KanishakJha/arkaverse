@@ -1,13 +1,15 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Play, Pause, ChevronLeft, ChevronRight, Volume2 } from 'lucide-react'
+import { Play, Pause, ChevronLeft, ChevronRight, Volume2, User, UserCheck } from 'lucide-react'
 
 export function ReaderPage() {
   const { route, books, chapters, fetchChapters, isPlaying, setIsPlaying, navigate } = useApp()
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   
-  // Audio streaming control elements
+  // 🎙️ GENDER SELECTION STATE: Default set to Male voice ('male')
+  const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male')
+  
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const chunksRef = useRef<string[]>([])
@@ -30,7 +32,7 @@ export function ReaderPage() {
     ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है."
     : "Welcome to Blood and Glory. This is the journey of a fighter.")
 
-  // 🧠 SMART SPLITTER: Breaks 5000+ words into safe 2000-character chunks
+  // SMART SPLITTER: Breaks text into safe 2000-character chunks
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -50,11 +52,17 @@ export function ReaderPage() {
       }
 
       chunksRef.current = chunks
-      setCurrentChunkIndex(0) // Reset to first chunk on text change
+      setCurrentChunkIndex(0) 
+      
+      // Stop ongoing playback if text or chapter changes
+      if (audioRef.current) {
+        audioRef.current.pause()
+        setIsPlaying(false)
+      }
     }
-  }, [textToRead])
+  }, [textToRead, setIsPlaying])
 
-  // ElevenLabs Dynamic Stream Controller
+  // ElevenLabs Dynamic Stream Controller with Voice Swapping
   useEffect(() => {
     async function playCurrentChunk() {
       if (!isPlaying || chunksRef.current.length === 0) return
@@ -63,11 +71,21 @@ export function ReaderPage() {
       if (!activeText) return
 
       try {
-        // ⚠️ YAHA APNI API KEY PASTE KARNA BHAI:
+        // ⚠️ YAHA APNI API KEY DOBAARA PASTE KAR DENA BHAI:
         const API_KEY = "sk_1cec648b44208dded5f713cd2ebc8efc9fb14dd023792ac2" 
         const isHindi = /[\u0900-\u097F]/.test(activeText)
         const modelId = "eleven_multilingual_v2"
-        const voiceId = isHindi ? "21m00Tcm4TlvDq8ikWAM" : "pNInz6obpgmo51dZ5mX8"
+        
+        // 🚀 ULTRA-REALISTIC INSANI VOICES (No Robot Tone)
+        // Male: Liam (en) / Madhav (hi fallback via multilingual v2)
+        // Female: Rachel (en) / Shreya (hi fallback via multilingual v2)
+        let voiceId = "TX3LPaxmHKxFOn7dgXxL" // Default Professional Human Male (Liam)
+        
+        if (voiceGender === 'female') {
+          voiceId = "21m00Tcm4TlvDq8ikWAM" // Professional Human Female (Rachel)
+        } else if (isHindi && voiceGender === 'male') {
+          voiceId = "N2lVS1w4EtoT3Y4AJS8L" // Deep Narrator Male (Brian) which handles Hindi beautifully
+        }
 
         if (audioRef.current) {
           audioRef.current.pause()
@@ -82,11 +100,11 @@ export function ReaderPage() {
           body: JSON.stringify({
             text: activeText,
             model_id: modelId,
-            voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+            voice_settings: { stability: 0.5, similarity_boost: 0.85 } // Raised boost for absolute human quality
           })
         })
 
-        if (!response.ok) throw new Error("ElevenLabs limit reached")
+        if (!response.ok) throw new Error("ElevenLabs failure")
 
         const blob = await response.blob()
         const url = URL.createObjectURL(blob)
@@ -94,12 +112,11 @@ export function ReaderPage() {
         audioRef.current = new Audio(url)
         audioRef.current.play().catch(() => {})
 
-        // When current chunk finishes, automatically generate and play the next chunk!
         audioRef.current.onended = () => {
           if (currentChunkIndex < chunksRef.current.length - 1) {
             setCurrentChunkIndex(prev => prev + 1)
           } else {
-            setIsPlaying(false) // Whole chapter completed
+            setIsPlaying(false)
           }
         }
       } catch (err) {
@@ -124,7 +141,7 @@ export function ReaderPage() {
       if (audioRef.current) audioRef.current.pause()
       window.speechSynthesis.cancel()
     }
-  }, [isPlaying, currentChunkIndex])
+  }, [isPlaying, currentChunkIndex, voiceGender, setIsPlaying])
 
   useEffect(() => {
     return () => {
@@ -134,7 +151,7 @@ export function ReaderPage() {
   }, [])
 
   if (!book) return null
-  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Loading Professional Audio Pipeline...</div>
+  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Loading Audio Matrix...</div>
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
@@ -168,7 +185,31 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* Live Subtitle Content (Super helpful for Deaf monitoring) */}
+        {/* 🎛️ NEW GENDER VOICE CHOICES FILTER TABS */}
+        <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
+          <button
+            onClick={() => {
+              setVoiceGender('male')
+              if (isPlaying) { setCurrentChunkIndex(0); } // Restart current chunk with new voice
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
+          >
+            {voiceGender === 'male' ? <UserCheck className="w-4 h-4" /> : <User className="w-4 h-4" />}
+            Male Voice (Insani)
+          </button>
+          <button
+            onClick={() => {
+              setVoiceGender('female')
+              if (isPlaying) { setCurrentChunkIndex(0); }
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'female' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
+          >
+            {voiceGender === 'female' ? <UserCheck className="w-4 h-4" /> : <User className="w-4 h-4" />}
+            Female Voice
+          </button>
+        </div>
+
+        {/* Live Subtitle Content Monitoring */}
         <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 text-center max-h-32 overflow-y-auto no-scrollbar">
           <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 font-semibold flex items-center justify-center gap-1.5">
             <Volume2 className="w-3 h-3 text-emerald-400" /> Playing Part {currentChunkIndex + 1} of {chunksRef.current.length}
