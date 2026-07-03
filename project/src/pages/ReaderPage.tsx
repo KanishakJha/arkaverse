@@ -25,15 +25,13 @@ export function ReaderPage() {
     }
   }, [route.bookId])
 
-  // 🚀 FALLBACK DUMMY ARRAYS: Agar backend se chapters load nahi huye, toh yeh temporary data engine ko chalaye rakhega
+  // 🚀 FALLBACK DUMMY ARRAYS
   const dbChapters = book ? chapters[book.id] || [] : []
   const bookChapters = dbChapters.length > 0 ? dbChapters : [
     {
       id: "dummy-1",
       title: "एपिसोड एक: अमृत का अभिशाप",
-      content: book?.title.toLowerCase().includes('pralay') 
-        ? "दृश्य एक. अतीत की स्मृतियां. पंद्रह वर्ष पूर्व, गांव के बाहर का बीहड़ वन और चिलचिलाती धूप. ग्रीष्म ऋतु का वह दिन किसी भट्टी की तरह तप रहा था."
-        : "Welcome to chapter one of your selected audiobook series. Darkness begins here."
+      content: "दृश्य एक. अतीत की स्मृतियां. पंद्रह वर्ष पूर्व, गांव के बाहर का बीहड़ वन और चिलचिलाती धूप. ग्रीष्म ऋतु का वह दिन किसी भट्टी की तरह तप रहा था."
     },
     {
       id: "dummy-2",
@@ -290,4 +288,12 @@ export function ReaderPage() {
               setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1))
               setTimeout(() => setIsPlaying(true), 150)
             }}
-            className={`p-3 ${currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-700' : 'text-zinc-400 hover:text-white
+            className={`p-3 ${currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-700' : 'text-zinc-400 hover:text-white'}`}
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
