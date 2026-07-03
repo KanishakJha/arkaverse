@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck, ShieldAlert } from 'lucide-react'
 
-// 🚀 Independent Data Store: Pure state/context mapping errors bypass karne ke liye local simulation structure
 const LOCAL_BOOKS_DATA = [
   {
     id: "book-pralay",
@@ -22,13 +21,12 @@ const LOCAL_CHAPTERS_DATA: Record<string, { id: string; title: string; content: 
     {
       id: "pralay-ch-2",
       title: "एपिसोड दो: गहरा सन्नाटा और रहस्य",
-      content: "शाम को, जब दोनों भाई अपने घर के आंगन में बैठे उस पिल्ले के घावों पर हल्दी और नीम का लेप लगा रहे थे, तभी अचानक पीछे से एक अजीब सी परछाई गुजरी और सन्नाटा छा गया."
+      content: "शाम को, when both brothers were sitting in the courtyard applying turmeric and neem paste to the puppy's wounds, suddenly a strange shadow passed behind them and silence fell."
     }
   ]
 };
 
 export function ReaderPage() {
-  // Safe Internal Routing Hooks (Bypasses global context type blocks)
   const [currentBookId] = useState("book-pralay");
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [localIsPlaying, setLocalIsPlaying] = useState(false);
@@ -43,7 +41,6 @@ export function ReaderPage() {
   const activeChapter = bookChapters[currentChapterIndex];
   const textToRead = activeChapter?.content || "No content found.";
 
-  // Segmenting large Hindi texts into safe chunks to maintain flow
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead];
@@ -68,7 +65,6 @@ export function ReaderPage() {
     }
   }, [textToRead]);
 
-  // Ambient sound system
   useEffect(() => {
     if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
@@ -87,7 +83,6 @@ export function ReaderPage() {
     }
   }, [localIsPlaying]);
 
-  // Core High-Performance Free TTS Processing Pipeline
   useEffect(() => {
     if (!localIsPlaying || chunksRef.current.length === 0) {
       window.speechSynthesis.cancel();
@@ -130,7 +125,6 @@ export function ReaderPage() {
 
     selectSystemVoice();
 
-    // Indian Horror narrative depth acoustics adjustments
     if (voiceGender === 'male') {
       utterance.pitch = 0.80; 
       utterance.rate = 0.88;  
@@ -172,17 +166,25 @@ export function ReaderPage() {
     }
   }, []);
 
+  const handleGoHome = () => {
+    window.speechSynthesis.cancel();
+    setLocalIsPlaying(false);
+    window.location.href = "/";
+  };
+
+  const handleGoAdmin = () => {
+    window.speechSynthesis.cancel();
+    setLocalIsPlaying(false);
+    window.location.href = "/admin";
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col relative overflow-x-hidden">
-      {/* HEADER NAVBAR */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-800/50 justify-between">
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <button 
-            onClick={() => {
-              window.speechSynthesis.cancel();
-              setLocalIsPlaying(false);
-              window.location.href = "/"; // Direct safe window routing injection
-            }} 
+            type="button"
+            onClick={handleGoHome} 
             className="p-2 hover:bg-zinc-800 rounded-full transition flex items-center justify-center"
           >
             <ChevronLeft className="w-6 h-6 text-zinc-200" />
@@ -190,18 +192,15 @@ export function ReaderPage() {
           <div className="min-w-0 flex-1">
             <h2 className="text-xs uppercase tracking-widest text-zinc-400 truncate">{book.title}</h2>
             <h1 className="text-sm font-semibold text-zinc-200 truncate">
-              {activeChapter?.title || `Chapter ${currentChapterIndex + 1}`}
+              {activeChapter?.title || 'Chapter ' + (currentChapterIndex + 1)}
             </h1>
           </div>
         </div>
 
         <div>
           <button 
-            onClick={() => {
-              window.speechSynthesis.cancel();
-              setLocalIsPlaying(false);
-              window.location.href = "/admin"; // Direct dynamic page transition bypass
-            }}
+            type="button"
+            onClick={handleGoAdmin}
             className="p-2 bg-zinc-900/40 border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-red-400 transition"
           >
             <ShieldAlert className="w-4 h-4" />
@@ -209,44 +208,87 @@ export function ReaderPage() {
         </div>
       </div>
 
-      {/* BODY CONTENT VIEW */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
         <div className="relative w-64 h-64 rounded-full overflow-hidden shadow-2xl border-4 border-zinc-800">
-          <img src={book.cover_url} alt="" className={`w-full h-full object-cover transition-transform duration-1000 ${localIsPlaying ? 'scale-105' : 'scale-100'}`} />
+          <img src={book.cover_url} alt="" className={'w-full h-full object-cover transition-transform duration-1000 ' + (localIsPlaying ? 'scale-105' : 'scale-100')} />
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
             <div className="w-6 h-6 bg-zinc-950 rounded-full border-2 border-zinc-700" />
           </div>
         </div>
 
-        {/* VOICE SELECTOR GENDER SWITCH CONTROLS */}
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
           <button
+            type="button"
             onClick={() => {
               window.speechSynthesis.cancel();
               setVoiceGender('male');
               setCurrentChunkIndex(0);
             }}
-            className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
+            className={'flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ' + (voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200')}
           >
             <UserCheck className="w-4 h-4" />
             Male Voice
           </button>
           <button
+            type="button"
             onClick={() => {
               window.speechSynthesis.cancel();
               setVoiceGender('female');
               setCurrentChunkIndex(0);
             }}
-            className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'female' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
+            className={'flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ' + (voiceGender === 'female' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200')}
           >
             <User className="w-4 h-4" />
             Female Voice
           </button>
         </div>
 
-        {/* REAL TIME MANUSCRIPT VISUALIZER */}
         <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 text-center max-h-32 overflow-y-auto no-scrollbar">
           <p className="text-sm text-zinc-300 italic">
             "{chunksRef.current[currentChunkIndex] || "Loading story engine track..."}"
           </p>
         </div>
+
+        <div className="flex items-center gap-6">
+          <button 
+            type="button"
+            disabled={currentChapterIndex === 0}
+            onClick={() => {
+              window.speechSynthesis.cancel();
+              setLocalIsPlaying(false);
+              setCurrentChunkIndex(0);
+              setCurrentChapterIndex(prev => Math.max(0, prev - 1));
+              setTimeout(() => setLocalIsPlaying(true), 150);
+            }}
+            className={'p-3 ' + (currentChapterIndex === 0 ? 'text-zinc-700' : 'text-zinc-400 hover:text-white')}
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          
+          <button 
+            type="button"
+            onClick={() => setLocalIsPlaying(!localIsPlaying)}
+            className="p-4 bg-white text-black rounded-full hover:scale-105 transition flex items-center justify-center"
+          >
+            {localIsPlaying ? <Pause className="w-6 h-6" fill="black" /> : <Play className="w-6 h-6" fill="black" />}
+          </button>
+
+          <button 
+            type="button"
+            disabled={currentChapterIndex >= bookChapters.length - 1}
+            onClick={() => {
+              window.speechSynthesis.cancel();
+              setLocalIsPlaying(false);
+              setCurrentChunkIndex(0);
+              setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1));
+              setTimeout(() => setLocalIsPlaying(true), 150);
+            }}
+            className={'p-3 ' + (currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-700' : 'text-zinc-400 hover:text-white')}
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
