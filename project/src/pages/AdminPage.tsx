@@ -6,10 +6,7 @@ import { Trash2, Plus, ArrowLeft, Headphones, Edit2, Upload } from 'lucide-react
 export function AdminPage() {
   const { books, fetchChapters, addBook, updateBook, deleteBook, navigate } = useApp()
   
-  // Selection identity tracker for updates
   const [editingBookId, setEditingBookId] = useState<string | null>(null)
-
-  // Form input field configurations
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
   const [synopsis, setSynopsis] = useState('')
@@ -17,11 +14,8 @@ export function AdminPage() {
   const [coverUrl, setCoverUrl] = useState('')
   const [chapterTitle, setChapterTitle] = useState('Chapter 1')
   const [chapterContent, setChapterContent] = useState('')
-  
-  // Upload state tracker
   const [uploading, setUploading] = useState(false)
 
-  // Trigger content loading when selecting an audio row for editing
   const handleSelectEdit = async (bookItem: any) => {
     setEditingBookId(bookItem.id)
     setTitle(bookItem.title)
@@ -40,7 +34,6 @@ export function AdminPage() {
     }
   }
 
-  // Manual Photo Cover Upload Handler via Supabase Storage
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true)
@@ -53,14 +46,12 @@ export function AdminPage() {
       const fileName = `${Math.random()}.${fileExt}`
       const filePath = `covers/${fileName}`
 
-      // Upload file to the 'fablex-assets' bucket
       const { error: uploadError } = await supabase.storage
         .from('fablex-assets')
         .upload(filePath, file)
 
       if (uploadError) throw uploadError
 
-      // Get public URL link for database schema row matching
       const { data } = supabase.storage
         .from('fablex-assets')
         .getPublicUrl(filePath)
@@ -233,3 +224,41 @@ export function AdminPage() {
                 <option value="Mystery">Mystery</option>
               </select>
             </div>
+            
+            {/* Manual Cover Upload Control Grid */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-zinc-400">Creative Cover Album *</label>
+              <div className="flex items-center gap-3">
+                <label className={`flex-1 flex items-center justify-center gap-2 border border-dashed rounded-xl px-4 py-2 text-xs font-medium cursor-pointer transition ${coverUrl ? 'border-emerald-500/50 bg-emerald-500/5 text-emerald-400' : 'border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400'}`}>
+                  <Upload className="w-4 h-4" />
+                  {uploading ? 'Uploading...' : coverUrl ? 'Cover Photo Selected ✅' : 'Choose Cover Photo'}
+                  <input type="file" accept="image/*" onChange={handleFileUpload} disabled={uploading} className="hidden" />
+                </label>
+                {coverUrl && (
+                  <img src={coverUrl} alt="Preview" className="w-9 h-9 object-cover rounded-lg border border-zinc-800" />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* AI Voice Lab Workspace Card */}
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3">
+            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+              1. AI Voice Lab (Paste Story Script)
+            </h3>
+            <div className="space-y-1">
+              <input type="text" value={chapterTitle} onChange={e => setChapterTitle(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-300 focus:outline-none" placeholder="Chapter Track Title" />
+            </div>
+            <div className="space-y-1">
+              <textarea value={chapterContent} onChange={e => setChapterContent(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-300 h-24 focus:outline-none resize-none" placeholder="Apni kahani ya chapter ka poora text yahan paste karo bhai... AI isi text ko pure audio stream mein convert karega." />
+            </div>
+          </div>
+
+          <button onClick={handlePublish} className="w-full py-3 bg-white text-black font-semibold text-sm rounded-xl hover:bg-zinc-200 transition flex items-center justify-center gap-2">
+            <Plus className="w-4 h-4" /> {editingBookId ? 'Save Changes' : 'Publish Audio Series Catalog'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
