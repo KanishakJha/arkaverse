@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { Play, Pause, ChevronLeft, ChevronRight, Volume2 } from 'lucide-react'
 
 export function ReaderPage() {
   const { route, books, isPlaying, setIsPlaying, navigate } = useApp()
-  const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
+  const [currentChapterIndex] = useState(0)
   
   // Dummy chapters text fallback for dynamic TTS reading (Hindi & English Support)
   const defaultChapters = [
@@ -21,7 +21,6 @@ export function ReaderPage() {
 
   // Native Browser Speech Synthesis Engine for Free AI Voice
   useEffect(() => {
-    // Agar play button dabaya hai aur text available hai
     if (isPlaying && activeChapter?.content) {
       // Pehle se chal rahi koi bhi voice ko stop karein
       window.speechSynthesis.cancel()
@@ -35,7 +34,6 @@ export function ReaderPage() {
         utterance.lang = 'en-US' // English Voice
       }
 
-      // Jab bolna khatam ho jaye toh play button automatically band ho jaye
       utterance.onend = () => {
         setIsPlaying(false)
       }
@@ -44,17 +42,15 @@ export function ReaderPage() {
         setIsPlaying(false)
       }
 
-      // Voice start karein
       window.speechSynthesis.speak(utterance)
     } else {
-      // Agar pause kiya toh bolna band karein
       window.speechSynthesis.cancel()
     }
 
     return () => {
       window.speechSynthesis.cancel()
     }
-  }, [isPlaying, activeChapter])
+  }, [isPlaying, activeChapter, setIsPlaying])
 
   if (!book) return null
 
