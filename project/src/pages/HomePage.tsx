@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { 
   Search, 
@@ -12,8 +12,7 @@ import {
   AlertTriangle, 
   Layers, 
   Play, 
-  Clock, 
-  Headphones 
+  Clock 
 } from 'lucide-react'
 
 const GENRE_ICONS: Record<string, any> = {
@@ -31,7 +30,6 @@ export function HomePage() {
   const { books, navigate } = useApp()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedGenre, setSelectedGenre] = useState('All')
-  const [isFlipping, setIsFlipping] = useState(false)
 
   const genres = ['All', 'Epic', 'Sci-Fi', 'Horror', 'Mystery', 'Mythology', 'Thriller', 'Cyberpunk']
 
