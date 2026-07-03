@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck, Ghost } from 'lucide-react'
+import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck, Ghost, Edit3, PlusCircle } from 'lucide-react'
 
 export function ReaderPage() {
   const { route, books, chapters, fetchChapters, isPlaying, setIsPlaying, navigate } = useApp()
@@ -33,7 +33,7 @@ export function ReaderPage() {
     ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है."
     : "Welcome to the dark journey. Suspense builds up in the shadows.")
 
-  // SMART SPLITTER: Splits text into safe, perfectly paced pieces
+  // SMART SPLITTER: Splits text into safe chunks for narration
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -58,7 +58,7 @@ export function ReaderPage() {
     }
   }, [textToRead])
 
-  // CONTROL HORROR BACKGROUND SOUND (Always Loop)
+  // CONTROL HORROR BACKGROUND SOUND (Loop)
   useEffect(() => {
     if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav')
@@ -77,7 +77,7 @@ export function ReaderPage() {
     }
   }, [isPlaying])
 
-  // 🚀 NATIVE HIGH-QUALITY STREAM CONTEXT WITH HARD FORCED LOADING
+  // LOCAL SPEECH UTTERANCE PIPELINE
   useEffect(() => {
     if (!isPlaying || chunksRef.current.length === 0) {
       window.speechSynthesis.cancel()
@@ -87,17 +87,15 @@ export function ReaderPage() {
     const activeText = chunksRef.current[currentChunkIndex]
     if (!activeText) return
 
-    window.speechSynthesis.cancel() // Stop any overlap immediately
+    window.speechSynthesis.cancel()
 
     const utterance = new SpeechSynthesisUtterance(activeText)
     const isHindi = /[\u0900-\u097F]/.test(activeText)
     
     utterance.lang = isHindi ? 'hi-IN' : 'en-IN'
 
-    // This function searches for true Google engine profiles on Android/Chrome
     const assignBestVoice = () => {
       const voices = window.speechSynthesis.getVoices()
-      
       let selectedVoice = voices.find(v => {
         const name = v.name.toLowerCase()
         const lang = v.lang.toLowerCase()
@@ -106,28 +104,24 @@ export function ReaderPage() {
         if (voiceGender === 'male') {
           return lang.includes(targetLang) && (name.includes('male') || name.includes('google hindi') || name.includes('ravi') || name.includes('david'))
         } else {
-          return lang.includes(targetLang) && (name.includes('female') || name.includes('swara') || name.includes('zira') || name.includes('heera'))
+          return lang.includes(targetLang) && (name.includes('female') || name.includes('swara') || name.includes('zira'))
         }
       })
 
-      // Fallback to any voice matching language if special profiles aren't ready
       if (!selectedVoice) {
         selectedVoice = voices.find(v => v.lang.toLowerCase().includes(isHindi ? 'hi' : 'en'))
       }
 
-      if (selectedVoice) {
-        utterance.voice = selectedVoice
-      }
+      if (selectedVoice) utterance.voice = selectedVoice
     }
 
     assignBestVoice()
 
-    // 🎛️ STRICT REAL TIME MODULATION (Bypasses robotic drone feel)
     if (voiceGender === 'male') {
-      utterance.pitch = 0.70 // Lower pitch to create deep bass
-      utterance.rate = 0.85  // Slower pace for eerie horror atmosphere
+      utterance.pitch = 0.70 
+      utterance.rate = 0.85  
     } else {
-      utterance.pitch = 1.15 // Normal clear female accent
+      utterance.pitch = 1.15 
       utterance.rate = 0.95
     }
 
@@ -139,11 +133,8 @@ export function ReaderPage() {
       }
     }
 
-    utterance.onerror = () => {
-      setIsPlaying(false)
-    }
+    utterance.onerror = () => setIsPlaying(false)
 
-    // Force Android Chrome to register the speaking action
     if (window.speechSynthesis.getVoices().length === 0) {
       window.speechSynthesis.onvoiceschanged = () => {
         assignBestVoice()
@@ -166,30 +157,64 @@ export function ReaderPage() {
   }, [])
 
   if (!book) return null
-  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Initializing Free Sound Pipeline...</div>
+  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Initializing Dashboard Context...</div>
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      <div className="flex items-center gap-4 p-4 border-b border-zinc-800/50">
-        <button 
-          onClick={() => {
-            window.speechSynthesis.cancel()
-            if (bgMusicRef.current) bgMusicRef.current.pause()
-            setIsPlaying(false)
-            navigate({ page: 'home' })
-          }} 
-          className="p-2 hover:bg-zinc-800 rounded-full transition flex items-center justify-center"
-        >
-          <ChevronLeft className="w-6 h-6 text-zinc-200" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-xs uppercase tracking-widest text-zinc-400 truncate">{book.title}</h2>
-          <h1 className="text-sm font-semibold text-zinc-200 truncate">
-            {activeChapter?.title || `Chapter ${currentChapterIndex + 1}`}
-          </h1>
+      {/* HEADER WITH BACK BUTTON & AUTHOR CONTROLS */}
+      <div className="flex items-center gap-4 p-4 border-b border-zinc-800/50 justify-between">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          <button 
+            onClick={() => {
+              window.speechSynthesis.cancel()
+              if (bgMusicRef.current) bgMusicRef.current.pause()
+              setIsPlaying(false)
+              navigate({ page: 'home' })
+            }} 
+            className="p-2 hover:bg-zinc-800 rounded-full transition flex items-center justify-center"
+          >
+            <ChevronLeft className="w-6 h-6 text-zinc-200" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xs uppercase tracking-widest text-zinc-400 truncate">{book.title}</h2>
+            <h1 className="text-sm font-semibold text-zinc-200 truncate">
+              {activeChapter?.title || `Chapter ${currentChapterIndex + 1}`}
+            </h1>
+          </div>
+        </div>
+
+        {/* AUTHOR QUICK BUTTONS PANEL */}
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => {
+              window.speechSynthesis.cancel()
+              setIsPlaying(false)
+              // Navigating to an edit context page layout
+              navigate({ page: 'edit-book', bookId: book.id })
+            }}
+            className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-300 hover:text-white flex items-center gap-1.5 text-xs font-medium transition shadow-sm"
+            title="Edit Book Details"
+          >
+            <Edit3 className="w-4 h-4 text-amber-500" />
+            <span className="hidden sm:inline">Edit</span>
+          </button>
+          <button 
+            onClick={() => {
+              window.speechSynthesis.cancel()
+              setIsPlaying(false)
+              // Navigating to chapter production module screen
+              navigate({ page: 'add-chapter', bookId: book.id })
+            }}
+            className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-300 hover:text-white flex items-center gap-1.5 text-xs font-medium transition shadow-sm"
+            title="Add New Chapter"
+          >
+            <PlusCircle className="w-4 h-4 text-emerald-500" />
+            <span className="hidden sm:inline">Add Chapter</span>
+          </button>
         </div>
       </div>
 
+      {/* CORE WORKSPACE STUDIO */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
         <div className="relative w-64 h-64 rounded-full overflow-hidden shadow-2xl border-4 border-zinc-800">
           <img src={book.cover_url} alt="" className={`w-full h-full object-cover transition-transform duration-1000 ${isPlaying ? 'scale-105' : 'scale-100'}`} />
@@ -198,7 +223,7 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* GENDER VOICE CHOICES FILTER TABS */}
+        {/* VOICE TOGGLES */}
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
           <button
             onClick={() => {
@@ -224,15 +249,17 @@ export function ReaderPage() {
           </button>
         </div>
 
+        {/* LIVE TRACKER SCREEN */}
         <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 text-center max-h-32 overflow-y-auto no-scrollbar">
           <p className="text-xs text-emerald-400 uppercase tracking-wider mb-2 font-semibold flex items-center justify-center gap-1.5 animate-pulse">
             <Ghost className="w-4 h-4 text-red-500" /> Horror Soundscape Active • Part {currentChunkIndex + 1}
           </p>
           <p className="text-sm text-zinc-300 italic">
-            "{chunksRef.current[currentChunkIndex] || "Loading narrative text stream..."}"
+            "{chunksRef.current[currentChunkIndex] || "Loading story script pipeline..."}"
           </p>
         </div>
 
+        {/* PLAYER ACTION TOGGLES */}
         <div className="flex items-center gap-6">
           <button 
             disabled={currentChapterIndex === 0}
