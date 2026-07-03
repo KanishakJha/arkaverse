@@ -3,15 +3,14 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
-  Plus, Trash2, Sparkles, Check, Loader2, Film, Music, ImagePlus, X,
-  Pencil, Lock, Unlock, ChevronDown, ChevronUp, Wand2
+  Plus, Sparkles, Check, Loader2, Film, Music, ImagePlus, ChevronDown, ChevronUp, Wand2
 } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { Badge } from '../components/ui/badge'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card'
-import { Field, FieldLabel, FieldError } from '../components/ui/field'
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
+import { Field, FieldLabel } from '../components/ui/field'
+import type { AuraTheme } from '../types'
 
 const chapterSchema = z.object({
   title: z.string().min(1, 'Chapter title required'),
@@ -42,16 +41,14 @@ const DEFAULT_VALUES: BookFormData = {
 }
 
 export function AdminPage() {
-  const { addBook, updateBook, books, fetchChapters } = useApp()
+  const { addBook, updateBook } = useApp()
 
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [expandedChapter, setExpandedChapter] = useState<number | null>(0)
   const [coverPreview, setCoverPreview] = useState<string>('')
-  const [coverFileName, setCoverFileName] = useState<string>('')
-  const [editingBook, setEditingBook] = useState<Book | null>(null)
+  const [editingBook, setEditingBook] = useState<any>(null)
   
-  // ✨ AI Generation States
   const [aiText, setAiText] = useState('')
   const [generatingAudio, setGeneratingAudio] = useState<number | null>(null)
 
@@ -64,13 +61,12 @@ export function AdminPage() {
     watch,
     reset,
     setValue,
-    formState: { errors },
   } = useForm<BookFormData>({
     resolver: zodResolver(bookSchema) as any,
     defaultValues: DEFAULT_VALUES,
   })
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'chapters' })
+  const { fields, append } = useFieldArray({ control, name: 'chapters' })
 
   function showSuccess(msg: string) {
     setSuccessMsg(msg)
@@ -80,12 +76,10 @@ export function AdminPage() {
   function clearForm() {
     reset(DEFAULT_VALUES)
     setCoverPreview('')
-    setCoverFileName('')
     setExpandedChapter(0)
     setAiText('')
   }
 
-  // ✨ AUTOMATED AI TEXT-TO-SPEECH API TRIGGER
   async function generateAIAudio(index: number) {
     if (!aiText.trim()) {
       alert("Pehle text area mein kahani ka text paste karo bhai!")
@@ -94,17 +88,13 @@ export function AdminPage() {
 
     setGeneratingAudio(index)
     try {
-      // 📝 Yahan aapki ElevenLabs ya OpenAI API hit hogi
-      // Real setup mein hum response ko Supabase Storage mein upload karke URL lete hain
-      // Abhi simulation ke liye hum ek standard premium high-quality voice link bind kar rahe hain
-      
-      const response = await new Promise((resolve) => setTimeout(resolve, 2500))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
       const simulatedAudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
       
       setValue(`chapters.${index}.audio_url`, simulatedAudioUrl)
-      alert(`✨ Episode ${index + 1} ka AI Audio bina kisi copyright ke successfully generate ho gaya!`)
+      alert(`✨ Episode ${index + 1} ka AI Audio successfully generate ho gaya!`)
     } catch (err) {
-      alert("AI Generation failed. Please check your network context API keys.")
+      alert("AI Generation failed.")
     } finally {
       setGeneratingAudio(null)
     }
@@ -117,7 +107,6 @@ export function AdminPage() {
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string
       setCoverPreview(dataUrl)
-      setCoverFileName(file.name)
       setValue('cover_url', dataUrl)
     }
     reader.readAsDataURL(file)
@@ -127,6 +116,7 @@ export function AdminPage() {
     setSubmitting(true)
     try {
       const genreList = data.genres.split(',').map((g) => g.trim()).filter(Boolean)
+      const currentTheme: AuraTheme = 'solar_dawn'
       
       const bookPayload = {
         title: data.title,
@@ -136,7 +126,7 @@ export function AdminPage() {
         genres: genreList,
         tags: genreList.map((g) => g.toLowerCase()),
         cover_url: data.cover_url ?? '',
-        aura_theme: 'solar_dawn',
+        aura_theme: currentTheme,
         reading_time_minutes: data.reading_time_minutes,
         total_chapters: data.chapters.length,
         featured: false,
@@ -154,12 +144,12 @@ export function AdminPage() {
       }))
 
       if (editingBook) {
-        await updateBook((editingBook as any).id, bookPayload, chapterPayload)
+        await updateBook(editingBook.id, bookPayload, chapterPayload)
         setEditingBook(null)
-        showSuccess('Changes saved to ecosystem!')
+        showSuccess('Changes saved successfully!')
       } else {
         await addBook(bookPayload, chapterPayload)
-        showSuccess('Audiobook Series Successfully Published to Fablex Studio!')
+        showSuccess('Audiobook Series Successfully Published!')
       }
 
       clearForm()
@@ -192,7 +182,6 @@ export function AdminPage() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Book metadata */}
         <Card className="border-slate-800 bg-slate-900/60 backdrop-blur-md">
           <CardHeader>
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
@@ -201,22 +190,22 @@ export function AdminPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field data-invalid={!!errors.title}>
+            <Field>
               <FieldLabel className="text-slate-300">Series Title *</FieldLabel>
               <Input placeholder="Enter series title…" className="bg-slate-950 border-slate-800 text-white" {...register('title')} />
             </Field>
 
-            <Field data-invalid={!!errors.author}>
+            <Field>
               <FieldLabel className="text-slate-300">Narrator / Author *</FieldLabel>
               <Input placeholder="Narrator name…" className="bg-slate-950 border-slate-800 text-white" {...register('author')} />
             </Field>
 
-            <Field data-invalid={!!errors.synopsis} className="sm:col-span-2">
+            <Field className="sm:col-span-2">
               <FieldLabel className="text-slate-300">Series Synopsis *</FieldLabel>
               <Input placeholder="Write a short dramatic hook for listeners..." className="bg-slate-950 border-slate-800 text-white" {...register('synopsis')} />
             </Field>
 
-            <Field data-invalid={!!errors.genres}>
+            <Field>
               <FieldLabel className="text-slate-300">Genres *</FieldLabel>
               <Input placeholder="Horror, Thriller, Mythological" className="bg-slate-950 border-slate-800 text-white" {...register('genres')} />
             </Field>
@@ -244,7 +233,6 @@ export function AdminPage() {
           </CardContent>
         </Card>
 
-        {/* AI AUDIO TEXT GENERATOR WORKSPACE */}
         <Card className="border-slate-800 bg-slate-900/60 backdrop-blur-md">
           <CardHeader>
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
@@ -256,13 +244,12 @@ export function AdminPage() {
             <textarea
               value={aiText}
               onChange={(e) => setAiText(e.target.value)}
-              placeholder="Apni kahani ya chapter ka poora text yahan paste karo bhai, chahe kitna bhi bada ho... Phir neeche wale episode par jaakar 'Generate Voice' daba dena."
+              placeholder="Apni kahani ya chapter ka poora text yahan paste karo bhai... Phir neeche wale episode par jaakar 'Generate Voice' daba dena."
               className="w-full min-h-[140px] bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-700 font-sans resize-y"
             />
           </CardContent>
         </Card>
 
-        {/* Audio Track Manager */}
         <Card className="border-slate-800 bg-slate-900/60 backdrop-blur-md">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -318,12 +305,7 @@ export function AdminPage() {
                     </div>
 
                     <div className="flex items-center justify-between p-2.5 bg-slate-900/40 rounded-lg border border-slate-800">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-slate-300 flex items-center gap-1">
-                          {watch(`chapters.${idx}.is_audio_premium`) ? <Lock className="size-3 text-amber-400" /> : <Unlock className="size-3 text-emerald-400" />}
-                          Subscription Paywall
-                        </span>
-                      </div>
+                      <span className="text-xs font-semibold text-slate-300">Subscription Paywall</span>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" {...register(`chapters.${idx}.is_audio_premium`)} />
                         <div className="w-9 h-5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500 after:bg-white"></div>
