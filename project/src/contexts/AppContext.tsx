@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-// Types definition matching ecosystem architecture
 export interface Book {
   id: string;
   title: string;
@@ -56,7 +55,6 @@ interface AppContextType {
   currentTrack: any;
   setCurrentTrack: (book: Book, chapter: Chapter) => void;
   auraTheme: string;
-  // ✨ MOCK TYPES TO FIX LEGACY COMPONENTS EXPORTS
   currentBook: any;
   currentChapter: any;
   audioProgress: number;
@@ -76,42 +74,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [books, setBooks] = useState<Book[]>([]);
   const [chapters, setChapters] = useState<Record<string, Chapter[]>>({});
   
-  // Custom Player Workspace States
   const [typographyMode, setTypographyMode] = useState<any>('sans');
   const [fontSize, setFontSize] = useState(16);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [currentTrack, setCurrentTrackState] = useState<any>(null);
   const [auraTheme, setAuraTheme] = useState('solar_dawn');
-
-  // Legacy Compatibility States
-  const [mixerOpen, setMixerOpen] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
+  const [mixerOpen, setMixerOpen] = useState(false);
 
-  // Sync initial history state for the home page
   useEffect(() => {
-    if (!window.history.state) {
-      window.history.replaceState({ page: 'home' }, '', '/');
-    }
     loadBooks();
-  }, []);
-
-  // Handle browser back and forward navigation updates cleanly
-  useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      if (event.state && event.state.page) {
-        setRoute({ 
-          page: event.state.page,
-          bookId: event.state.bookId,
-          chapterNum: event.state.chapterNum
-        });
-      } else {
-        setRoute({ page: 'home' });
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   async function loadBooks() {
@@ -197,31 +170,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await loadBooks();
   }
 
+  // Pure Application State Switching (No pushState 404 vulnerabilities on Vercel)
   function navigate(nextRoute: RouteState) {
     setRoute(nextRoute);
-    
-    // Push state to browser history so 'Back' button alters application state instead of exiting
-    if (nextRoute.page === 'home') {
-      window.history.pushState({ page: 'home' }, '', '/');
-    } else {
-      window.history.pushState(
-        { 
-          page: nextRoute.page, 
-          bookId: nextRoute.bookId, 
-          chapterNum: nextRoute.chapterNum 
-        }, 
-        '', 
-        `/${nextRoute.page}`
-      );
-    }
   }
 
   function updateProgress(bookId: string, pct: number, dummy: number, chapterNum: number) {
-    const syncLog = { bookId, pct, dummy, chapterNum };
-    return syncLog;
+    return { bookId, pct, dummy, chapterNum };
   }
 
-  function setCurrentTrack(book: Book, chapter: Chapter) {
+  type SafeBook = Book;
+  type SafeChapter = Chapter;
+  function setCurrentTrack(book: SafeBook, chapter: SafeChapter) {
     setCurrentTrackState({
       bookId: book.id,
       bookTitle: book.title,
@@ -234,7 +194,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (book.aura_theme) setAuraTheme(book.aura_theme);
   }
 
-  // ✨ COMPATIBILITY FALLBACK HANDLERS
   const currentBook = currentTrack ? books.find(b => b.id === currentTrack.bookId) : null;
   const currentChapter = currentTrack;
   const mixerTracks: any[] = [];
