@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Trash2, Plus, ArrowLeft, Headphones } from 'lucide-react'
+import { Trash2, Plus, ArrowLeft, Headphones, Edit2 } from 'lucide-react'
 
 export function AdminPage() {
-  const { books, addBook, deleteBook, navigate } = useApp()
+  const { books, chapters, fetchChapters, addBook, updateBook, deleteBook, navigate } = useApp()
   
-  // Form states for manual submission management
+  // Selection identity tracker for updates
+  const [editingBookId, setEditingBookId] = useState<string | null>(null)
+
+  // Form input field configurations
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
   const [synopsis, setSynopsis] = useState('')
@@ -14,10 +17,29 @@ export function AdminPage() {
   const [chapterTitle, setChapterTitle] = useState('Chapter 1')
   const [chapterContent, setChapterContent] = useState('')
 
+  // Trigger content loading when selecting an audio row for editing
+  const handleSelectEdit = async (bookItem: any) => {
+    setEditingBookId(bookItem.id)
+    setTitle(bookItem.title)
+    setAuthor(bookItem.author)
+    setSynopsis(bookItem.synopsis || '')
+    setGenres(bookItem.genres?.[0] || 'Horror')
+    setCoverUrl(bookItem.cover_url || '')
+    
+    const loadedChapters = await fetchChapters(bookItem.id)
+    if (loadedChapters && loadedChapters.length > 0) {
+      setChapterTitle(loadedChapters[0].title)
+      setChapterContent(loadedChapters[0].content)
+    } else {
+      setChapterTitle('Chapter 1')
+      setChapterContent('')
+    }
+  }
+
   async function handlePublish() {
     if (!title || !author) return alert('Title and Author are required fields!')
     
-    const newBookPayload = {
+    const bookPayload = {
       title,
       author,
       synopsis,
@@ -39,16 +61,26 @@ export function AdminPage() {
     ]
 
     try {
-      await addBook(newBookPayload, chapterPayload)
-      alert('Audio Series Published Successfully!')
-      // Clear form states fields
+      if (editingBookId) {
+        // Update operational target path
+        await updateBook(editingBookId, bookPayload, chapterPayload)
+        alert('Audio Series Updated Safely!')
+      } else {
+        // Creative addition path
+        await addBook(bookPayload, chapterPayload)
+        alert('New Audio Series Published Successfully!')
+      }
+      
+      // Reset layout variables
+      setEditingBookId(null)
       setTitle('')
       setAuthor('')
       setSynopsis('')
       setChapterContent('')
+      setChapterTitle('Chapter 1')
     } catch (err) {
       console.error(err)
-      alert('Error publishing series context.')
+      alert('Error updating database content rows.')
     }
   }
 
@@ -77,26 +109,37 @@ export function AdminPage() {
           ) : (
             <div className="space-y-2.5 max-h-[500px] overflow-y-auto no-scrollbar">
               {books.map((b) => (
-                <div key={b.id} className="flex items-center justify-between p-3 bg-zinc-900/80 border border-zinc-800/60 rounded-xl">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div key={b.id} className={`flex items-center justify-between p-3 border rounded-xl transition ${editingBookId === b.id ? 'bg-zinc-800/80 border-emerald-500/50' : 'bg-zinc-900/80 border-zinc-800/60'}`}>
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <img src={b.cover_url} alt="" className="w-10 h-10 object-cover rounded-md border border-zinc-800" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate text-zinc-200">{b.title}</p>
                       <p className="text-xs text-zinc-500 truncate">By {b.author}</p>
                     </div>
                   </div>
-                  <button 
-                    onClick={async () => {
-                      if (confirm(`Are you sure you want to completely delete "${b.title}"?`)) {
-                        await deleteBook(b.id)
-                        alert('Book dropped from remote master schema.')
-                      }
-                    }}
-                    className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
-                    title="Delete Series"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={() => handleSelectEdit(b)}
+                      className="p-2 text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800 rounded-lg transition"
+                      title="Edit Catalog Item"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        if (confirm(`Are you sure you want to completely delete "${b.title}"?`)) {
+                          await deleteBook(b.id)
+                          if (editingBookId === b.id) setEditingBookId(null)
+                          alert('Book dropped from remote master schema.')
+                        }
+                      }}
+                      className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                      title="Delete Series"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -105,7 +148,26 @@ export function AdminPage() {
 
         {/* Right Area: Form Upload Creation Matrix */}
         <div className="lg:col-span-2 bg-zinc-900/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Upload New Audio Series Master</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
+              {editingBookId ? 'Modify Selected Audio Entry' : 'Upload New Audio Series Master'}
+            </h2>
+            {editingBookId && (
+              <button 
+                onClick={() => {
+                  setEditingBookId(null)
+                  setTitle('')
+                  setAuthor('')
+                  setSynopsis('')
+                  setChapterContent('')
+                  setChapterTitle('Chapter 1')
+                }}
+                className="text-xs text-zinc-400 hover:text-white underline"
+              >
+                Cancel Edit Mode
+              </button>
+            )}
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -154,7 +216,7 @@ export function AdminPage() {
           </div>
 
           <button onClick={handlePublish} className="w-full py-3 bg-white text-black font-semibold text-sm rounded-xl hover:bg-zinc-200 transition flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" /> Publish Audio Series Catalog
+            <Plus className="w-4 h-4" /> {editingBookId ? 'Save Changes' : 'Publish Audio Series Catalog'}
           </button>
         </div>
       </div>
