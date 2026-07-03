@@ -8,20 +8,21 @@ interface ChapterInput {
 }
 
 export function AdminPage() {
-  // 🚀 FIXED: Type conflicts completely cleared by avoiding unexposed set state hooks
   const { books, navigate } = useApp()
   const [selectedBookId, setSelectedBookId] = useState(books[0]?.id || '')
   const [synopsis, setSynopsis] = useState('Indian Zombie apocalypse serial')
   const [genre, setGenre] = useState('Horror')
   const [author, setAuthor] = useState('Kanishak Jha')
 
-  // DYNAMIC CHAPTER ARRAY STATE (Chapter 1, 2, 3...)
+  // DYNAMIC CHAPTER ARRAY STATE
   const [chaptersList, setChaptersList] = useState<ChapterInput[]>([
     { title: 'एपिसोड एक: अमृत का अभिशाप और अटूट बंधन', content: '' }
   ])
 
   const handleAddChapterRow = () => {
-    setChaptersList([...chaptersList, { title: `एपिसोड ${chaptersList.length + 1}: `, content: '' }])
+    // FIXED STRING LITERAL: Safely handles text joining without breaking JSX tokens
+    const nextIndex = chaptersList.length + 1
+    setChaptersList([...chaptersList, { title: 'एपिसोड ' + nextIndex + ': ', content: '' }])
   }
 
   const handleRemoveChapterRow = (index: number) => {
@@ -42,10 +43,9 @@ export function AdminPage() {
       return
     }
 
-    // Creating safe production data payload model locally
     const formattedChapters = chaptersList.map((ch, idx) => ({
-      id: `${selectedBookId}-ch-${idx + 1}-${Date.now()}`,
-      title: ch.title || `Chapter ${idx + 1}`,
+      id: selectedBookId + '-ch-' + (idx + 1) + '-' + Date.now(),
+      title: ch.title || 'Chapter ' + (idx + 1),
       content: ch.content || "Empty manuscript paragraph text body."
     }))
 
@@ -80,7 +80,9 @@ export function AdminPage() {
             onChange={(e) => setSelectedBookId(e.target.value)}
             className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none text-zinc-200"
           >
-            {books.map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
+            {books.map(b => (
+              <option key={b.id} value={b.id}>{b.title}</option>
+            ))}
           </select>
         </div>
 
@@ -128,11 +130,67 @@ export function AdminPage() {
           </div>
         </div>
 
-        {/* 🛠️ DYNAMIC CHAPTER INJECTION LAB */}
+        {/* DYNAMIC CHAPTER INJECTION LAB */}
         <div className="border-t border-zinc-800 pt-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-emerald-400 uppercase tracking-wider">AI Voice Lab (Book Chapters Bundle)</h2>
             <button 
               type="button"
               onClick={handleAddChapterRow}
-              className="px-3 py-1.5 bg-emerald-
+              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-lg flex items-center gap-1 transition"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Next Chapter
+            </button>
+          </div>
+
+          <div className="space-y-6 max-h-[350px] overflow-y-auto pr-1 no-scrollbar">
+            {chaptersList.map((ch, index) => (
+              <div key={index} className="bg-zinc-900/90 border border-zinc-800/80 p-4 rounded-xl space-y-3 relative group">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-500 uppercase">Node #{index + 1}</span>
+                  {chaptersList.length > 1 && (
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveChapterRow(index)}
+                      className="p-1 text-zinc-500 hover:text-red-400 transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <input 
+                    type="text"
+                    value={ch.title}
+                    placeholder="Chapter Title (e.g. Chapter 2: Gehra Raaz)"
+                    onChange={(e) => handleChapterChange(index, 'title', e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <textarea 
+                    value={ch.content}
+                    placeholder="Paste your individual script content text body here..."
+                    onChange={(e) => handleChapterChange(index, 'content', e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 h-24 resize-none focus:border-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* SAVE CORE */}
+        <button 
+          type="button"
+          onClick={handleSaveChanges}
+          className="w-full mt-2 bg-white text-black hover:bg-zinc-200 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition shadow-lg"
+        >
+          <Save className="w-4 h-4" /> Save Whole Sequence
+        </button>
+      </div>
+    </div>
+  )
+}
