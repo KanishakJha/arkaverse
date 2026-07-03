@@ -61,7 +61,7 @@ export function ReaderPage() {
     }
   }, [textToRead, setIsPlaying])
 
-  // ElevenLabs Dynamic Stream Controller with Premium Fixed Indian Voice Swapping
+  // ElevenLabs Dynamic Stream Controller with Premium Fixed Voice Swapping
   useEffect(() => {
     async function playCurrentChunk() {
       if (!isPlaying || chunksRef.current.length === 0) return
@@ -71,14 +71,12 @@ export function ReaderPage() {
 
       try {
         const API_KEY = "sk_1cec648b44208dded5f713cd2ebc8efc9fb14dd023792ac2" 
+        const modelId = "eleven_multilingual_v2"
         
-        // 🚀 ELEVENLABS TURBO MODEL FOR LOWER LATENCY AND BETTER ACCENT SELECTION
-        const modelId = "eleven_turbo_v2_5"
-        
-        // 🔥 ABSOLUTE FIXED VOICES:
-        // Male ID: 'N2lVS1w4EtoT3Y4AJS8L' (Brian - Universal Deep Professional Narrator Voice)
-        // Female ID: 'EXAVITQu4vr4xnSDxMaL' (Bella - Clear crisp narrative female voice)
-        let voiceId = voiceGender === 'female' ? 'EXAVITQu4vr4xnSDxMaL' : 'N2lVS1w4EtoT3Y4AJS8L'
+        // 🚀 NEW 100% WORKING UNIVERSAL PRESET VOICES:
+        // Male ID: 'JBF27QC10tN6D3pSrlEX' (George - Deep British/Indian Accent Heavy Male Narrator)
+        // Female ID: 'EXAVITQu4vr4xnSDxMaL' (Bella - Clear narrative female voice)
+        let voiceId = voiceGender === 'female' ? 'EXAVITQu4vr4xnSDxMaL' : 'JBF27QC10tN6D3pSrlEX'
 
         if (audioRef.current) {
           audioRef.current.pause()
@@ -94,9 +92,9 @@ export function ReaderPage() {
             text: activeText,
             model_id: modelId,
             voice_settings: { 
-              stability: 0.40, // Reduced stability for more human-like dynamic emotions
-              similarity_boost: 0.85, // Forced cloning similarity match
-              style: 0.10,
+              stability: 0.45, 
+              similarity_boost: 0.85, 
+              style: 0.0,
               use_speaker_boost: true
             }
           })
@@ -137,7 +135,7 @@ export function ReaderPage() {
       playCurrentChunk()
     } else {
       if (audioRef.current) audioRef.current.pause()
-      window.speechSynthesis.cancel()
+      window.history.state ? null : window.speechSynthesis.cancel()
     }
   }, [isPlaying, currentChunkIndex, voiceGender, setIsPlaying])
 
@@ -183,7 +181,7 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* 🎛️ NEW GENDER VOICE CHOICES FILTER TABS */}
+        {/* 🎛️ GENDER VOICE CHOICES FILTER TABS */}
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
           <button
             onClick={() => {
