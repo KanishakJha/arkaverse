@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Play, Pause, ChevronLeft, ChevronRight, Volume2, User, UserCheck, Ghost } from 'lucide-react'
+import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck, Ghost } from 'lucide-react'
 
 export function ReaderPage() {
   const { route, books, chapters, fetchChapters, isPlaying, setIsPlaying, navigate } = useApp()
@@ -30,10 +30,10 @@ export function ReaderPage() {
   const activeChapter = bookChapters[currentChapterIndex]
 
   const textToRead = activeChapter?.content || (book?.title.toLowerCase().includes('pralay')
-    ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेra छा गया है."
+    ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है."
     : "Welcome to the dark journey. Suspense builds up in the shadows.")
 
-  // SMART SPLITTER: Splits 5000+ words into small natural chunks
+  // SMART SPLITTER: Splits words into small natural chunks
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -58,14 +58,12 @@ export function ReaderPage() {
     }
   }, [textToRead])
 
-  // 🎵 EFFECT 1: CONTROL HORROR BACKGROUND SOUND WITH PLAYBACK
+  // CONTROL HORROR BACKGROUND SOUND WITH PLAYBACK
   useEffect(() => {
-    // Creating ambient track if not exists
     if (!bgMusicRef.current) {
-      // Using a high-quality endless dark ambient horror pad drone
       bgMusicRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav')
       bgMusicRef.current.loop = true
-      bgMusicRef.current.volume = 0.15 // Kept low (15%) so it doesn't block the male voice narration
+      bgMusicRef.current.volume = 0.15 
     }
 
     if (isPlaying) {
@@ -79,7 +77,7 @@ export function ReaderPage() {
     }
   }, [isPlaying])
 
-  // EFFECT 2: Native Voice Engine Controller
+  // Native Voice Engine Controller
   useEffect(() => {
     if (!isPlaying || chunksRef.current.length === 0) {
       window.speechSynthesis.cancel()
@@ -110,7 +108,7 @@ export function ReaderPage() {
 
     if (voiceGender === 'male') {
       utterance.pitch = 0.85 // Deep male voice modulation
-      utterance.rate = 0.88  // Slower pace for eerie horror vibes
+      utterance.rate = 0.88  // Slower pace for horror vibes
     } else {
       utterance.pitch = 1.25 
       utterance.rate = 0.95
@@ -132,7 +130,6 @@ export function ReaderPage() {
 
   }, [isPlaying, currentChunkIndex, voiceGender])
 
-  // Total cleanup on exit
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel()
