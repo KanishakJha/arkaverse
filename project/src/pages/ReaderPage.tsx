@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck, Ghost, Edit3, PlusCircle } from 'lucide-react'
+import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck, Ghost, Edit3, PlusCircle, Save, X } from 'lucide-react'
 
 export function ReaderPage() {
   const { route, books, chapters, fetchChapters, isPlaying, setIsPlaying, navigate } = useApp()
@@ -15,6 +15,15 @@ export function ReaderPage() {
   // 👻 HORROR AMBIENT BACKGROUND SOUND REF
   const bgMusicRef = useRef<HTMLAudioElement | null>(null)
 
+  // 🛠️ AUTHOR PANEL MODAL STATES (Bypasses Route String Type Errors)
+  const [isEditingBook, setIsEditingBook] = useState(false)
+  const [isAddingChapter, setIsAddingChapter] = useState(false)
+
+  // Form Fields State
+  const [editTitle, setEditTitle] = useState('')
+  const [newChapterTitle, setNewChapterTitle] = useState('')
+  const [newChapterContent, setNewChapterContent] = useState('')
+
   const book = books.find((b) => b.id === route.bookId)
   
   useEffect(() => {
@@ -24,7 +33,13 @@ export function ReaderPage() {
         setLoading(false)
       })
     }
-  }, [route.bookId])
+  }, [route.bookId, fetchChapters])
+
+  useEffect(() => {
+    if (book) {
+      setEditTitle(book.title)
+    }
+  }, [book])
 
   const bookChapters = book ? chapters[book.id] || [] : []
   const activeChapter = bookChapters[currentChapterIndex]
@@ -156,12 +171,28 @@ export function ReaderPage() {
     }
   }, [])
 
+  // Action Handle Stubs
+  const handleSaveBookDetails = () => {
+    // Backend API trigger logic hooks here
+    console.log("Saving new book title configuration:", editTitle)
+    setIsEditingBook(false)
+  }
+
+  const handleCreateNewChapter = () => {
+    // Backend API array insertion logic hooks here
+    console.log("Submitting chapter payload:", { newChapterTitle, newChapterContent })
+    setIsAddingChapter(false)
+    setNewChapterTitle('')
+    setNewChapterContent('')
+  }
+
   if (!book) return null
-  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Initializing Dashboard Context...</div>
+  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Loading Dashboard Workspaces...</div>
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      {/* HEADER WITH BACK BUTTON & AUTHOR CONTROLS */}
+    <div className="min-h-screen bg-zinc-950 text-white flex flex-col relative overflow-x-hidden">
+      
+      {/* HEADER BAR */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-800/50 justify-between">
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <button 
@@ -183,30 +214,26 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* AUTHOR QUICK BUTTONS PANEL */}
+        {/* AUTHOR CONTROLS: Controlled locally to avoid type mismatch errors */}
         <div className="flex items-center gap-2">
           <button 
             onClick={() => {
               window.speechSynthesis.cancel()
               setIsPlaying(false)
-              // Navigating to an edit context page layout
-              navigate({ page: 'edit-book', bookId: book.id })
+              setIsEditingBook(true)
             }}
-            className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-300 hover:text-white flex items-center gap-1.5 text-xs font-medium transition shadow-sm"
-            title="Edit Book Details"
+            className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-300 hover:text-white flex items-center gap-1.5 text-xs font-medium transition"
           >
             <Edit3 className="w-4 h-4 text-amber-500" />
-            <span className="hidden sm:inline">Edit</span>
+            <span className="hidden sm:inline">Edit Book</span>
           </button>
           <button 
             onClick={() => {
               window.speechSynthesis.cancel()
               setIsPlaying(false)
-              // Navigating to chapter production module screen
-              navigate({ page: 'add-chapter', bookId: book.id })
+              setIsAddingChapter(true)
             }}
-            className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-300 hover:text-white flex items-center gap-1.5 text-xs font-medium transition shadow-sm"
-            title="Add New Chapter"
+            className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-300 hover:text-white flex items-center gap-1.5 text-xs font-medium transition"
           >
             <PlusCircle className="w-4 h-4 text-emerald-500" />
             <span className="hidden sm:inline">Add Chapter</span>
@@ -214,7 +241,76 @@ export function ReaderPage() {
         </div>
       </div>
 
-      {/* CORE WORKSPACE STUDIO */}
+      {/* OVERLAY PANEL 1: EDIT BOOK MODULE DETAILS */}
+      {isEditingBook && (
+        <div className="absolute inset-0 bg-zinc-950/95 z-50 p-6 flex flex-col justify-start space-y-4 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <h3 className="text-base font-bold flex items-center gap-2 text-amber-400">
+              <Edit3 className="w-5 h-5" /> Edit Book Setup
+            </h3>
+            <button onClick={() => setIsEditingBook(false)} className="p-1 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Book Title</label>
+            <input 
+              type="text" 
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition"
+              placeholder="Enter book title..."
+            />
+          </div>
+          <button 
+            onClick={handleSaveBookDetails}
+            className="w-full mt-4 bg-amber-500 hover:bg-amber-600 text-black py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition shadow"
+          >
+            <Save className="w-4 h-4" /> Save Variations
+          </button>
+        </div>
+      )}
+
+      {/* OVERLAY PANEL 2: PRODUCTION UNIT FOR ADDING CHAPTERS */}
+      {isAddingChapter && (
+        <div className="absolute inset-0 bg-zinc-950/95 z-50 p-6 flex flex-col justify-start space-y-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <h3 className="text-base font-bold flex items-center gap-2 text-emerald-400">
+              <PlusCircle className="w-5 h-5" /> Add Content Chapter
+            </h3>
+            <button onClick={() => setIsAddingChapter(false)} className="p-1 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Chapter Title</label>
+            <input 
+              type="text" 
+              value={newChapterTitle}
+              onChange={(e) => setNewChapterTitle(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500 transition"
+              placeholder="e.g. Episode 2: Gehra Raaz"
+            />
+          </div>
+          <div className="space-y-2 flex-1 flex flex-col">
+            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Story Text Body Script</label>
+            <textarea 
+              value={newChapterContent}
+              onChange={(e) => setNewChapterContent(e.target.value)}
+              className="w-full flex-1 min-h-[150px] bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500 transition resize-none layout-script"
+              placeholder="Type or paste your horror thriller narration text here..."
+            />
+          </div>
+          <button 
+            onClick={handleCreateNewChapter}
+            className="w-full bg-emerald-500 hover:bg-emerald-600 text-black py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition shadow mt-auto"
+          >
+            <PlusCircle className="w-4 h-4" /> Inject Chapter Node
+          </button>
+        </div>
+      )}
+
+      {/* CORE WORKSPACE STUDIO LAYER */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
         <div className="relative w-64 h-64 rounded-full overflow-hidden shadow-2xl border-4 border-zinc-800">
           <img src={book.cover_url} alt="" className={`w-full h-full object-cover transition-transform duration-1000 ${isPlaying ? 'scale-105' : 'scale-100'}`} />
