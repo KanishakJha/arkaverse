@@ -54,7 +54,6 @@ export function ReaderPage() {
       chunksRef.current = chunks
       setCurrentChunkIndex(0) 
       
-      // Stop ongoing playback if text or chapter changes
       if (audioRef.current) {
         audioRef.current.pause()
         setIsPlaying(false)
@@ -62,7 +61,7 @@ export function ReaderPage() {
     }
   }, [textToRead, setIsPlaying])
 
-  // ElevenLabs Dynamic Stream Controller with Voice Swapping
+  // ElevenLabs Dynamic Stream Controller with Premium Indian Voice Swapping
   useEffect(() => {
     async function playCurrentChunk() {
       if (!isPlaying || chunksRef.current.length === 0) return
@@ -71,21 +70,13 @@ export function ReaderPage() {
       if (!activeText) return
 
       try {
-        // ⚠️ YAHA APNI API KEY DOBAARA PASTE KAR DENA BHAI:
         const API_KEY = "sk_1cec648b44208dded5f713cd2ebc8efc9fb14dd023792ac2" 
-        const isHindi = /[\u0900-\u097F]/.test(activeText)
         const modelId = "eleven_multilingual_v2"
         
-        // 🚀 ULTRA-REALISTIC INSANI VOICES (No Robot Tone)
-        // Male: Liam (en) / Madhav (hi fallback via multilingual v2)
-        // Female: Rachel (en) / Shreya (hi fallback via multilingual v2)
-        let voiceId = "TX3LPaxmHKxFOn7dgXxL" // Default Professional Human Male (Liam)
-        
-        if (voiceGender === 'female') {
-          voiceId = "21m00Tcm4TlvDq8ikWAM" // Professional Human Female (Rachel)
-        } else if (isHindi && voiceGender === 'male') {
-          voiceId = "N2lVS1w4EtoT3Y4AJS8L" // Deep Narrator Male (Brian) which handles Hindi beautifully
-        }
+        // 🚀 CRITICAL FIX: Explicit Indian Accents to separate Male and Female completely
+        // Male ID: 'N2lVS1w4EtoT3Y4AJS8L' (Deep Indian English/Hindi Male Narrator)
+        // Female ID: 'EXAVITQu4vr4xnSDxMaL' (Soft Indian English/Hindi Female Voice)
+        let voiceId = voiceGender === 'female' ? 'EXAVITQu4vr4xnSDxMaL' : 'N2lVS1w4EtoT3Y4AJS8L'
 
         if (audioRef.current) {
           audioRef.current.pause()
@@ -100,7 +91,12 @@ export function ReaderPage() {
           body: JSON.stringify({
             text: activeText,
             model_id: modelId,
-            voice_settings: { stability: 0.5, similarity_boost: 0.85 } // Raised boost for absolute human quality
+            voice_settings: { 
+              stability: 0.30, // Lower stability makes it sound less like a machine and more like an active human actor
+              similarity_boost: 0.90, // Higher boost forces ElevenLabs to follow the exact voice type completely
+              style: 0.10,
+              use_speaker_boost: true
+            }
           })
         })
 
@@ -185,12 +181,12 @@ export function ReaderPage() {
           </div>
         </div>
 
-        {/* 🎛️ NEW GENDER VOICE CHOICES FILTER TABS */}
+        {/* 🎛️ GENDER VOICE CHOICES FILTER TABS */}
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-64 justify-between">
           <button
             onClick={() => {
               setVoiceGender('male')
-              if (isPlaying) { setCurrentChunkIndex(0); } // Restart current chunk with new voice
+              if (isPlaying) { setCurrentChunkIndex(0); }
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-lg transition ${voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:text-zinc-200'}`}
           >
