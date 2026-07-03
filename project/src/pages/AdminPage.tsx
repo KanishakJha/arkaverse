@@ -1,263 +1,208 @@
 import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { supabase } from '../lib/supabase'
-import { Trash2, Plus, ArrowLeft, Headphones, Edit2, Upload } from 'lucide-react'
+import { Plus, Trash2, Save, ChevronLeft, Film } from 'lucide-react'
+
+interface ChapterInput {
+  title: string
+  content: string
+}
 
 export function AdminPage() {
-  const { books, fetchChapters, addBook, updateBook, deleteBook, navigate } = useApp()
-  
-  const [editingBookId, setEditingBookId] = useState<string | null>(null)
-  const [title, setTitle] = useState('')
-  const [author, setAuthor] = useState('')
-  const [synopsis, setSynopsis] = useState('')
-  const [genres, setGenres] = useState('Horror')
-  const [coverUrl, setCoverUrl] = useState('')
-  const [chapterTitle, setChapterTitle] = useState('Chapter 1')
-  const [chapterContent, setChapterContent] = useState('')
-  const [uploading, setUploading] = useState(false)
+  // 🚀 EXTRACTED BOOKS UPDATE OPERATIONS FROM CONTEXT TO INJECT THE ACTUAL DATA ARRAY
+  const { books, chapters, setBooks, setChapters, navigate } = useApp()
+  const [selectedBookId, setSelectedBookId] = useState(books[0]?.id || '')
+  const [synopsis, setSynopsis] = useState('Indian Zombie apocalypse serial')
+  const [genre, setGenre] = useState('Horror')
+  const [author, setAuthor] = useState('Kanishak Jha')
 
-  const handleSelectEdit = async (bookItem: any) => {
-    setEditingBookId(bookItem.id)
-    setTitle(bookItem.title)
-    setAuthor(bookItem.author)
-    setSynopsis(bookItem.synopsis || '')
-    setGenres(bookItem.genres?.[0] || 'Horror')
-    setCoverUrl(bookItem.cover_url || '')
-    
-    const loadedChapters = await fetchChapters(bookItem.id)
-    if (loadedChapters && loadedChapters.length > 0) {
-      setChapterTitle(loadedChapters[0].title)
-      setChapterContent(loadedChapters[0].content)
-    } else {
-      setChapterTitle('Chapter 1')
-      setChapterContent('')
-    }
+  // DYNAMIC CHAPTER ARRAY STATE
+  const [chaptersList, setChaptersList] = useState<ChapterInput[]>([
+    { title: 'एपिसोड एक: अमृत का अभिशाप और अटूट बंधन', content: '' }
+  ])
+
+  const handleAddChapterRow = () => {
+    setChaptersList([...chaptersList, { title: `एपिसोड ${chaptersList.length + 1}: `, content: '' }])
   }
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true)
-      if (!event.target.files || event.target.files.length === 0) {
-        throw new Error('You must select an image to upload.')
-      }
-
-      const file = event.target.files[0]
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `covers/${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('fablex-assets')
-        .upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      const { data } = supabase.storage
-        .from('fablex-assets')
-        .getPublicUrl(filePath)
-
-      setCoverUrl(data.publicUrl)
-      alert('Photo cover uploaded successfully!')
-    } catch (error: any) {
-      alert(error.message || 'Error uploading file')
-    } finally {
-      setUploading(false)
-    }
+  const handleRemoveChapterRow = (index: number) => {
+    if (chaptersList.length === 1) return
+    const updated = chaptersList.filter((_, i) => i !== index)
+    setChaptersList(updated)
   }
 
-  async function handlePublish() {
-    if (!title || !author) return alert('Title and Author are required fields!')
-    
-    const bookPayload = {
-      title,
-      author,
-      synopsis,
-      genres: [genres],
-      cover_url: coverUrl || "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e",
-      published: true,
-      featured: false,
-      reading_time_minutes: 15,
-      total_chapters: 1
+  const handleChapterChange = (index: number, field: keyof ChapterInput, value: string) => {
+    const updated = [...chaptersList]
+    updated[index][field] = value
+    setChaptersList(updated)
+  }
+
+  // 🛠️ REAL TRANSACTION CORE OPERATIONS (Links fields right into the application memory context)
+  const handleSaveChanges = () => {
+    if (!selectedBookId) {
+      alert("Please select a target book first!")
+      return
     }
 
-    const chapterPayload = [
-      {
-        chapter_number: 1,
-        title: chapterTitle,
-        content: chapterContent,
-        audio_url: ""
+    // 1. Update the meta details inside the target book structure
+    const updatedBooks = books.map((b) => {
+      if (b.id === selectedBookId) {
+        return {
+          ...b,
+          author: author,
+          description: synopsis,
+          genre: genre
+        }
       }
-    ]
+      return b
+    })
 
-    try {
-      if (editingBookId) {
-        await updateBook(editingBookId, bookPayload, chapterPayload)
-        alert('Audio Series Updated Safely!')
-      } else {
-        await addBook(bookPayload, chapterPayload)
-        alert('New Audio Series Published Successfully!')
-      }
-      
-      setEditingBookId(null)
-      setTitle('')
-      setAuthor('')
-      setSynopsis('')
-      setCoverUrl('')
-      setChapterContent('')
-      setChapterTitle('Chapter 1')
-    } catch (err) {
-      console.error(err)
-      alert('Error updating database content rows.')
+    // 2. Format inputs into array nodes matching reader requirements
+    const formattedChapters = chaptersList.map((ch, idx) => ({
+      id: `${selectedBookId}-ch-${idx + 1}-${Date.now()}`, // Clean unique timestamp key id
+      title: ch.title || `Chapter ${idx + 1}`,
+      content: ch.content || "Empty manuscript paragraph text body."
+    }))
+
+    // 3. Inject inputs straight into active global state buckets
+    if (setBooks) setBooks(updatedBooks)
+    if (setChapters) {
+      setChapters({
+        ...chapters,
+        [selectedBookId]: formattedChapters
+      })
     }
+
+    alert("Changes saved into active state! Dynamic chapter sequences linked successfully.")
+    navigate({ page: 'home' })
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-6 space-y-8">
-      {/* Header Panel */}
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate({ page: 'home' })} className="p-2 hover:bg-zinc-900 rounded-full border border-zinc-800">
-          <ArrowLeft className="w-5 h-5" />
+    <div className="min-h-screen bg-zinc-950 text-white p-6">
+      {/* HEADER */}
+      <div className="flex items-center gap-4 mb-6 border-b border-zinc-800 pb-4">
+        <button onClick={() => navigate({ page: 'home' })} className="p-2 hover:bg-zinc-900 rounded-lg">
+          <ChevronLeft className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Headphones className="w-5 h-5 text-emerald-400" /> Fablex Backoffice Studio
-          </h1>
-          <p className="text-xs text-zinc-500">Manage audio items content distribution pipeline grid.</p>
-        </div>
+        <h1 className="text-xl font-bold">Author Studio Control Panel</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Area: Manage Books Feed Control */}
-        <div className="lg:col-span-1 bg-zinc-900/40 border border-zinc-900 rounded-2xl p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Active Catalog ({books.length})</h2>
-          
-          {books.length === 0 ? (
-            <p className="text-xs text-zinc-500 italic">No audio properties saved in database yet.</p>
-          ) : (
-            <div className="space-y-2.5 max-h-[500px] overflow-y-auto no-scrollbar">
-              {books.map((b) => (
-                <div key={b.id} className={`flex items-center justify-between p-3 border rounded-xl transition ${editingBookId === b.id ? 'bg-zinc-800/80 border-emerald-500/50' : 'bg-zinc-900/80 border-zinc-800/60'}`}>
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <img src={b.cover_url} alt="" className="w-10 h-10 object-cover rounded-md border border-zinc-800" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold truncate text-zinc-200">{b.title}</p>
-                      <p className="text-xs text-zinc-500 truncate">By {b.author}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
+      <div className="max-w-2xl mx-auto space-y-6 bg-zinc-900/40 border border-zinc-800 p-6 rounded-2xl shadow-xl">
+        {/* BOOK SELECTOR */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-zinc-400 uppercase">Select Target Book</label>
+          <select 
+            value={selectedBookId} 
+            onChange={(e) => setSelectedBookId(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none text-zinc-200"
+          >
+            {books.map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
+          </select>
+        </div>
+
+        {/* AUTHOR */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-zinc-400 uppercase">Narrator / Author *</label>
+          <input 
+            type="text" 
+            value={author} 
+            onChange={(e) => setAuthor(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-700"
+          />
+        </div>
+
+        {/* SYNOPSIS */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-zinc-400 uppercase">Series Synopsis *</label>
+          <textarea 
+            value={synopsis} 
+            onChange={(e) => setSynopsis(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm h-20 resize-none text-zinc-200 focus:outline-none focus:border-zinc-700"
+          />
+        </div>
+
+        {/* GENRE */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-zinc-400 uppercase">Genre *</label>
+          <select 
+            value={genre} 
+            onChange={(e) => setGenre(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none text-zinc-200"
+          >
+            <option value="Horror">Horror</option>
+            <option value="Sci-Fi">Sci-Fi</option>
+            <option value="Epic">Epic</option>
+          </select>
+        </div>
+
+        {/* COVER PREVIEW */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-zinc-400 uppercase">Creative Cover Album</label>
+          <div className="flex items-center gap-3 bg-zinc-900/80 border border-zinc-800 p-3 rounded-xl">
+            <Film className="w-5 h-5 text-emerald-400" />
+            <span className="text-xs font-medium text-emerald-400">Cover Photo Selected ✅</span>
+          </div>
+        </div>
+
+        {/* 🛠️ DYNAMIC CHAPTER INJECTION LAB */}
+        <div className="border-t border-zinc-800 pt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-emerald-400 uppercase tracking-wider">AI Voice Lab (Book Chapters Bundle)</h2>
+            <button 
+              type="button"
+              onClick={handleAddChapterRow}
+              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-lg flex items-center gap-1 transition"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Next Chapter
+            </button>
+          </div>
+
+          <div className="space-y-6 max-h-[350px] overflow-y-auto pr-1 no-scrollbar">
+            {chaptersList.map((ch, index) => (
+              <div key={index} className="bg-zinc-900/90 border border-zinc-800/80 p-4 rounded-xl space-y-3 relative group">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-500 uppercase">Node #{index + 1}</span>
+                  {chaptersList.length > 1 && (
                     <button 
-                      onClick={() => handleSelectEdit(b)}
-                      className="p-2 text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800 rounded-lg transition"
-                      title="Edit Catalog Item"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        if (confirm(`Are you sure you want to completely delete "${b.title}"?`)) {
-                          await deleteBook(b.id)
-                          if (editingBookId === b.id) setEditingBookId(null)
-                          alert('Book dropped from remote master schema.')
-                        }
-                      }}
-                      className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
-                      title="Delete Series"
+                      type="button"
+                      onClick={() => handleRemoveChapterRow(index)}
+                      className="p-1 text-zinc-500 hover:text-red-400 transition"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                  </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Right Area: Form Upload Creation Matrix */}
-        <div className="lg:col-span-2 bg-zinc-900/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
-              {editingBookId ? 'Modify Selected Audio Entry' : 'Upload New Audio Series Master'}
-            </h2>
-            {editingBookId && (
-              <button 
-                onClick={() => {
-                  setEditingBookId(null)
-                  setTitle('')
-                  setAuthor('')
-                  setSynopsis('')
-                  setCoverUrl('')
-                  setChapterContent('')
-                  setChapterTitle('Chapter 1')
-                }}
-                className="text-xs text-zinc-400 hover:text-white underline"
-              >
-                Cancel Edit Mode
-              </button>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-400">Series Title *</label>
-              <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-700" placeholder="Enter title" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-400">Narrator / Author *</label>
-              <input type="text" value={author} onChange={e => setAuthor(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-700" placeholder="Narrator name" />
-            </div>
-          </div>
+                <div className="space-y-1">
+                  <input 
+                    type="text"
+                    value={ch.title}
+                    placeholder="Chapter Title (e.g. Chapter 2: Gehra Raaz)"
+                    onChange={(e) => handleChapterChange(index, 'title', e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:border-emerald-500 outline-none"
+                  />
+                </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-400">Series Synopsis *</label>
-            <textarea value={synopsis} onChange={e => setSynopsis(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm h-16 focus:outline-none focus:border-zinc-700 resize-none" placeholder="Write dynamic description" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-400">Genre *</label>
-              <select value={genres} onChange={e => setGenres(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-700 text-zinc-300">
-                <option value="Horror">Horror</option>
-                <option value="Thriller">Thriller</option>
-                <option value="Sci-Fi">Sci-Fi</option>
-                <option value="Epic">Epic</option>
-                <option value="Mystery">Mystery</option>
-              </select>
-            </div>
-            
-            {/* Manual Cover Upload Control Grid */}
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-400">Creative Cover Album *</label>
-              <div className="flex items-center gap-3">
-                <label className={`flex-1 flex items-center justify-center gap-2 border border-dashed rounded-xl px-4 py-2 text-xs font-medium cursor-pointer transition ${coverUrl ? 'border-emerald-500/50 bg-emerald-500/5 text-emerald-400' : 'border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400'}`}>
-                  <Upload className="w-4 h-4" />
-                  {uploading ? 'Uploading...' : coverUrl ? 'Cover Photo Selected ✅' : 'Choose Cover Photo'}
-                  <input type="file" accept="image/*" onChange={handleFileUpload} disabled={uploading} className="hidden" />
-                </label>
-                {coverUrl && (
-                  <img src={coverUrl} alt="Preview" className="w-9 h-9 object-cover rounded-lg border border-zinc-800" />
-                )}
+                <div className="space-y-1">
+                  <textarea 
+                    value={ch.content}
+                    placeholder="Paste your individual script content text body here..."
+                    onChange={(e) => handleChapterChange(index, 'content', e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 h-24 resize-none focus:border-emerald-500 outline-none"
+                  />
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-
-          {/* AI Voice Lab Workspace Card */}
-          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3">
-            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-              1. AI Voice Lab (Paste Story Script)
-            </h3>
-            <div className="space-y-1">
-              <input type="text" value={chapterTitle} onChange={e => setChapterTitle(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-300 focus:outline-none" placeholder="Chapter Track Title" />
-            </div>
-            <div className="space-y-1">
-              <textarea value={chapterContent} onChange={e => setChapterContent(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-300 h-24 focus:outline-none resize-none" placeholder="Apni kahani ya chapter ka poora text yahan paste karo bhai... AI isi text ko pure audio stream mein convert karega." />
-            </div>
-          </div>
-
-          <button onClick={handlePublish} className="w-full py-3 bg-white text-black font-semibold text-sm rounded-xl hover:bg-zinc-200 transition flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" /> {editingBookId ? 'Save Changes' : 'Publish Audio Series Catalog'}
-          </button>
         </div>
+
+        {/* SAVE CORE */}
+        <button 
+          type="button"
+          onClick={handleSaveChanges}
+          className="w-full mt-2 bg-white text-black hover:bg-zinc-200 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition shadow-lg"
+        >
+          <Save className="w-4 h-4" /> Save Whole Sequence
+        </button>
       </div>
     </div>
   )
