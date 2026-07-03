@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { Trash2, Plus, ArrowLeft, Headphones, Edit2 } from 'lucide-react'
 
 export function AdminPage() {
-  const { books, chapters, fetchChapters, addBook, updateBook, deleteBook, navigate } = useApp()
+  const { books, fetchChapters, addBook, updateBook, deleteBook, navigate } = useApp()
   
   // Selection identity tracker for updates
   const [editingBookId, setEditingBookId] = useState<string | null>(null)
