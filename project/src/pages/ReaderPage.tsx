@@ -33,7 +33,7 @@ export function ReaderPage() {
     ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है."
     : "Welcome to the dark journey. Suspense builds up in the shadows.")
 
-  // SMART SPLITTER: Splits words into small natural chunks
+  // SMART SPLITTER: Splits 5000+ words into small natural chunks
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -77,40 +77,39 @@ export function ReaderPage() {
     }
   }, [isPlaying])
 
-  // Native Voice Engine Controller
-  useEffect(() => {
-    if (!isPlaying || chunksRef.current.length === 0) {
-      window.speechSynthesis.cancel()
-      return
-    }
-
-    const activeText = chunksRef.current[currentChunkIndex]
-    if (!activeText) return
-
+  // 🚀 HARD TRIGGER SYSTEM ENGINE FOR INDEPENDENT MOBILE VOICES
+  const playNativeUtterance = (text: string) => {
     window.speechSynthesis.cancel()
 
-    const utterance = new SpeechSynthesisUtterance(activeText)
-    const isHindi = /[\u0900-\u097F]/.test(activeText)
-    
+    const utterance = new SpeechSynthesisUtterance(text)
+    const isHindi = /[\u0900-\u097F]/.test(text)
     utterance.lang = isHindi ? 'hi-IN' : 'en-IN'
 
     const allVoices = window.speechSynthesis.getVoices()
-    let targetVoice = allVoices.find(v => 
-      v.lang.includes(isHindi ? 'hi' : 'en') && 
-      (voiceGender === 'male' 
-        ? (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('google hindi') || v.name.toLowerCase().includes('ravi') || v.name.toLowerCase().includes('david'))
-        : (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('swara') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('zira')))
-    )
+    
+    // Exact strict mobile filter mapping
+    let targetVoice = allVoices.find(v => {
+      const name = v.name.toLowerCase()
+      const lang = v.lang.toLowerCase()
+      const matchesLang = lang.includes(isHindi ? 'hi' : 'en')
+      
+      if (voiceGender === 'male') {
+        return matchesLang && (name.includes('male') || name.includes('google hindi') || name.includes('ravi') || name.includes('david'))
+      } else {
+        return matchesLang && (name.includes('female') || name.includes('swara') || name.includes('heera') || name.includes('zira') || name.includes('google-tts'))
+      }
+    })
 
     if (targetVoice) {
       utterance.voice = targetVoice
     }
 
+    // Direct pitch-shifting calculation to guarantee heavy male tone
     if (voiceGender === 'male') {
-      utterance.pitch = 0.85 // Deep male voice modulation
-      utterance.rate = 0.88  // Slower pace for horror vibes
+      utterance.pitch = 0.65 // Forced deep bass modulation
+      utterance.rate = 0.82  // Dramatic thriller pacing
     } else {
-      utterance.pitch = 1.25 
+      utterance.pitch = 1.25 // Sharp feminine inflection
       utterance.rate = 0.95
     }
 
@@ -127,7 +126,24 @@ export function ReaderPage() {
     }
 
     window.speechSynthesis.speak(utterance)
+  }
 
+  useEffect(() => {
+    if (isPlaying && chunksRef.current.length > 0) {
+      const activeText = chunksRef.current[currentChunkIndex]
+      if (activeText) {
+        // If voices aren't loaded yet on mobile chrome, wait and trigger
+        if (window.speechSynthesis.getVoices().length === 0) {
+          window.speechSynthesis.onvoiceschanged = () => {
+            playNativeUtterance(activeText)
+          }
+        } else {
+          playNativeUtterance(activeText)
+        }
+      }
+    } else {
+      window.speechSynthesis.cancel()
+    }
   }, [isPlaying, currentChunkIndex, voiceGender])
 
   useEffect(() => {
