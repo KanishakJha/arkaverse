@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { Play, Pause, ChevronLeft, ChevronRight, Volume2 } from 'lucide-react'
 
@@ -6,10 +6,14 @@ export function ReaderPage() {
   const { route, books, chapters, fetchChapters, isPlaying, setIsPlaying, navigate } = useApp()
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   const [loading, setLoading] = useState(true)
+  
+  // Audio streaming control elements
+  const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const chunksRef = useRef<string[]>([])
 
   const book = books.find((b) => b.id === route.bookId)
   
-  // Fetch real chapters from Supabase data store on component mount
   useEffect(() => {
     if (route.bookId) {
       setLoading(true)
@@ -22,60 +26,128 @@ export function ReaderPage() {
   const bookChapters = book ? chapters[book.id] || [] : []
   const activeChapter = bookChapters[currentChapterIndex]
 
-  // Fallback text structure in case backend content fields are still empty
-  const fallbackContent = book?.title.toLowerCase().includes('pralay')
-    ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है और एक रहस्यमयी शक्ति जाग उठी है."
-    : "Welcome to Blood and Glory. This is the journey of a fighter who lost everything to win the ultimate battle."
+  const textToRead = activeChapter?.content || (book?.title.toLowerCase().includes('pralay')
+    ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है."
+    : "Welcome to Blood and Glory. This is the journey of a fighter.")
 
-  const textToRead = activeChapter?.content || fallbackContent
-
-  // Web Speech Synthesis Pipeline Execution Row
+  // 🧠 SMART SPLITTER: Breaks 5000+ words into safe 2000-character chunks
   useEffect(() => {
-    if (isPlaying && textToRead) {
-      window.speechSynthesis.cancel()
+    if (textToRead) {
+      const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
+      const chunks: string[] = []
+      let currentChunk = ""
 
-      const utterance = new SpeechSynthesisUtterance(textToRead)
-      
-      // Smart language identifier regex
-      if (/[\u0900-\u097F]/.test(textToRead)) {
-        utterance.lang = 'hi-IN' // Pure Hindi Engine
-      } else {
-        utterance.lang = 'en-US' // Pure English Accent
+      sentences.forEach((sentence) => {
+        if ((currentChunk + sentence).length > 2000) {
+          chunks.push(currentChunk.trim())
+          currentChunk = sentence
+        } else {
+          currentChunk += sentence
+        }
+      })
+      if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim())
       }
 
-      utterance.onend = () => {
-        setIsPlaying(false)
-      }
+      chunksRef.current = chunks
+      setCurrentChunkIndex(0) // Reset to first chunk on text change
+    }
+  }, [textToRead])
 
-      utterance.onerror = () => {
-        setIsPlaying(false)
-      }
+  // ElevenLabs Dynamic Stream Controller
+  useEffect(() => {
+    async function playCurrentChunk() {
+      if (!isPlaying || chunksRef.current.length === 0) return
 
-      window.speechSynthesis.speak(utterance)
+      const activeText = chunksRef.current[currentChunkIndex]
+      if (!activeText) return
+
+      try {
+        // ⚠️ YAHA APNI API KEY PASTE KARNA BHAI:
+        const API_KEY = "sk_1cec648b44208dded5f713cd2ebc8efc9fb14dd023792ac2" 
+        const isHindi = /[\u0900-\u097F]/.test(activeText)
+        const modelId = "eleven_multilingual_v2"
+        const voiceId = isHindi ? "21m00Tcm4TlvDq8ikWAM" : "pNInz6obpgmo51dZ5mX8"
+
+        if (audioRef.current) {
+          audioRef.current.pause()
+        }
+
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'xi-api-key': API_KEY,
+          },
+          body: JSON.stringify({
+            text: activeText,
+            model_id: modelId,
+            voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+          })
+        })
+
+        if (!response.ok) throw new Error("ElevenLabs limit reached")
+
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        
+        audioRef.current = new Audio(url)
+        audioRef.current.play().catch(() => {})
+
+        // When current chunk finishes, automatically generate and play the next chunk!
+        audioRef.current.onended = () => {
+          if (currentChunkIndex < chunksRef.current.length - 1) {
+            setCurrentChunkIndex(prev => prev + 1)
+          } else {
+            setIsPlaying(false) // Whole chapter completed
+          }
+        }
+      } catch (err) {
+        console.error("ElevenLabs failed, using fallback:", err)
+        window.speechSynthesis.cancel()
+        const utterance = new SpeechSynthesisUtterance(activeText)
+        utterance.lang = /[\u0900-\u097F]/.test(activeText) ? 'hi-IN' : 'en-US'
+        utterance.onend = () => {
+          if (currentChunkIndex < chunksRef.current.length - 1) {
+            setCurrentChunkIndex(prev => prev + 1)
+          } else {
+            setIsPlaying(false)
+          }
+        }
+        window.speechSynthesis.speak(utterance)
+      }
+    }
+
+    if (isPlaying) {
+      playCurrentChunk()
     } else {
+      if (audioRef.current) audioRef.current.pause()
       window.speechSynthesis.cancel()
     }
+  }, [isPlaying, currentChunkIndex])
 
+  useEffect(() => {
     return () => {
+      if (audioRef.current) audioRef.current.pause()
       window.speechSynthesis.cancel()
     }
-  }, [isPlaying, textToRead, setIsPlaying])
+  }, [])
 
   if (!book) return null
-  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Loading Audio Asset...</div>
+  if (loading) return <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">Loading Professional Audio Pipeline...</div>
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      {/* Top Header Navigation Row */}
+      {/* Top Header Navigation */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-800/50">
         <button 
           onClick={() => {
+            if (audioRef.current) audioRef.current.pause()
             window.speechSynthesis.cancel()
             setIsPlaying(false)
             navigate({ page: 'home' })
           }} 
           className="p-2 hover:bg-zinc-800 rounded-full transition flex items-center justify-center"
-          aria-label="Back to home"
         >
           <ChevronLeft className="w-6 h-6 text-zinc-200" />
         </button>
@@ -87,71 +159,57 @@ export function ReaderPage() {
         </div>
       </div>
 
-      {/* Main Player UI Content */}
+      {/* Center Layout Container */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
         <div className="relative w-64 h-64 rounded-full overflow-hidden shadow-2xl border-4 border-zinc-800">
-          <img 
-            src={book.cover_url || "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e"} 
-            alt={book.title}
-            className={`w-full h-full object-cover transition-transform duration-1000 ${isPlaying ? 'scale-105' : 'scale-100'}`}
-          />
+          <img src={book.cover_url} alt="" className={`w-full h-full object-cover transition-transform duration-1000 ${isPlaying ? 'scale-105' : 'scale-100'}`} />
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-            <div className="w-6 h-6 bg-zinc-950 rounded-full border-2 border-zinc-700 flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full" />
-            </div>
+            <div className="w-6 h-6 bg-zinc-950 rounded-full border-2 border-zinc-700" />
           </div>
         </div>
 
-        {/* Text Dynamic Preview */}
+        {/* Live Subtitle Content (Super helpful for Deaf monitoring) */}
         <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 text-center max-h-32 overflow-y-auto no-scrollbar">
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 font-semibold flex items-center justify-center gap-1.5 sticky top-0 bg-zinc-900/60 py-0.5">
-            <Volume2 className="w-3 h-3 text-emerald-400" /> Reading Text Screen Preview
+          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 font-semibold flex items-center justify-center gap-1.5">
+            <Volume2 className="w-3 h-3 text-emerald-400" /> Playing Part {currentChunkIndex + 1} of {chunksRef.current.length}
           </p>
           <p className="text-sm text-zinc-300 italic">
-            "{textToRead}"
+            "{chunksRef.current[currentChunkIndex] || "Preparing chunk stream..."}"
           </p>
         </div>
 
-        {/* Audio Controls */}
+        {/* Player Action Grid */}
         <div className="flex items-center gap-6">
           <button 
             disabled={currentChapterIndex === 0}
             onClick={() => {
-              window.speechSynthesis.cancel()
+              if (audioRef.current) audioRef.current.pause()
               setIsPlaying(false)
               setCurrentChapterIndex(prev => Math.max(0, prev - 1))
             }}
-            className={`p-3 transition ${currentChapterIndex === 0 ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-400 hover:text-white'}`}
+            className={`p-3 ${currentChapterIndex === 0 ? 'text-zinc-700' : 'text-zinc-400 hover:text-white'}`}
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
           
           <button 
             onClick={() => setIsPlaying(!isPlaying)}
-            className="p-4 bg-white text-black rounded-full hover:scale-105 transition shadow-lg flex items-center justify-center"
+            className="p-4 bg-white text-black rounded-full hover:scale-105 transition flex items-center justify-center"
           >
             {isPlaying ? <Pause className="w-6 h-6" fill="black" /> : <Play className="w-6 h-6" fill="black" />}
           </button>
 
           <button 
-            disabled={currentChapterIndex >= bookChapters.length - 1 || bookChapters.length <= 1}
+            disabled={currentChapterIndex >= bookChapters.length - 1}
             onClick={() => {
-              window.speechSynthesis.cancel()
+              if (audioRef.current) audioRef.current.pause()
               setIsPlaying(false)
               setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1))
             }}
-            className={`p-3 transition ${currentChapterIndex >= bookChapters.length - 1 || bookChapters.length <= 1 ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-400 hover:text-white'}`}
+            className={`p-3 ${currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-700' : 'text-zinc-400 hover:text-white'}`}
           >
             <ChevronRight className="w-6 h-6" />
           </button>
-        </div>
-        
-        <div className="text-center px-4">
-          <p className="text-sm text-zinc-400 font-medium">Narrated by {book.author}</p>
-          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-medium rounded-full border border-emerald-500/20">
-            <span className={`w-1.5 h-1.5 bg-emerald-400 rounded-full ${isPlaying ? 'animate-ping' : ''}`} />
-            AI Dynamic Voice Pipeline Active
-          </div>
         </div>
       </div>
     </div>
