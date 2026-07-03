@@ -1,330 +1,163 @@
-import { useRef, useState } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import {
-  Plus, Sparkles, Check, Loader2, Film, Music, ImagePlus, ChevronDown, ChevronUp, Wand2
-} from 'lucide-react'
+import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
-import { Field, FieldLabel } from '../components/ui/field'
-import type { AuraTheme } from '../types'
-
-const chapterSchema = z.object({
-  title: z.string().min(1, 'Chapter title required'),
-  audio_url: z.string().url('Valid audio MP3 link required'),
-  is_audio_premium: z.boolean().optional(),
-})
-
-const bookSchema = z.object({
-  title: z.string().min(2, 'Title must be at least 2 characters'),
-  author: z.string().min(2, 'Author name required'),
-  synopsis: z.string().min(20, 'Synopsis must be at least 20 characters'),
-  genres: z.string().min(1, 'Enter at least one genre'),
-  cover_url: z.string().optional(),
-  reading_time_minutes: z.coerce.number().min(1).max(9999),
-  chapters: z.array(chapterSchema).min(1, 'Add at least one chapter stream'),
-})
-
-type BookFormData = z.infer<typeof bookSchema>
-
-const DEFAULT_VALUES: BookFormData = {
-  title: '',
-  author: '',
-  synopsis: '',
-  genres: '',
-  cover_url: '',
-  reading_time_minutes: 60,
-  chapters: [{ title: 'Chapter 1', audio_url: '', is_audio_premium: false }],
-}
+import { Trash2, Plus, ArrowLeft, Headphones } from 'lucide-react'
 
 export function AdminPage() {
-  const { addBook, updateBook } = useApp()
-
-  const [submitting, setSubmitting] = useState(false)
-  const [successMsg, setSuccessMsg] = useState<string | null>(null)
-  const [expandedChapter, setExpandedChapter] = useState<number | null>(0)
-  const [coverPreview, setCoverPreview] = useState<string>('')
-  const [editingBook, setEditingBook] = useState<any>(null)
+  const { books, addBook, deleteBook, navigate } = useApp()
   
-  const [aiText, setAiText] = useState('')
-  const [generatingAudio, setGeneratingAudio] = useState<number | null>(null)
+  // Form states for manual submission management
+  const [title, setTitle] = useState('')
+  const [author, setAuthor] = useState('')
+  const [synopsis, setSynopsis] = useState('')
+  const [genres, setGenres] = useState('Horror')
+  const [coverUrl, setCoverUrl] = useState('')
+  const [chapterTitle, setChapterTitle] = useState('Chapter 1')
+  const [chapterContent, setChapterContent] = useState('')
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const {
-    control,
-    register,
-    handleSubmit,
-    watch,
-    reset,
-    setValue,
-  } = useForm<BookFormData>({
-    resolver: zodResolver(bookSchema) as any,
-    defaultValues: DEFAULT_VALUES,
-  })
-
-  const { fields, append } = useFieldArray({ control, name: 'chapters' })
-
-  function showSuccess(msg: string) {
-    setSuccessMsg(msg)
-    setTimeout(() => setSuccessMsg(null), 3000)
-  }
-
-  function clearForm() {
-    reset(DEFAULT_VALUES)
-    setCoverPreview('')
-    setExpandedChapter(0)
-    setAiText('')
-  }
-
-  async function generateAIAudio(index: number) {
-    if (!aiText.trim()) {
-      alert("Pehle text area mein kahani ka text paste karo bhai!")
-      return
+  async function handlePublish() {
+    if (!title || !author) return alert('Title and Author are required fields!')
+    
+    const newBookPayload = {
+      title,
+      author,
+      synopsis,
+      genres: [genres],
+      cover_url: coverUrl || "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e",
+      published: true,
+      featured: false,
+      reading_time_minutes: 15,
+      total_chapters: 1
     }
 
-    setGeneratingAudio(index)
+    const chapterPayload = [
+      {
+        chapter_number: 1,
+        title: chapterTitle,
+        content: chapterContent,
+        audio_url: ""
+      }
+    ]
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      const simulatedAudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-      
-      setValue(`chapters.${index}.audio_url`, simulatedAudioUrl)
-      alert(`✨ Episode ${index + 1} ka AI Audio successfully generate ho gaya!`)
+      await addBook(newBookPayload, chapterPayload)
+      alert('Audio Series Published Successfully!')
+      // Clear form states fields
+      setTitle('')
+      setAuthor('')
+      setSynopsis('')
+      setChapterContent('')
     } catch (err) {
-      alert("AI Generation failed.")
-    } finally {
-      setGeneratingAudio(null)
-    }
-  }
-
-  function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string
-      setCoverPreview(dataUrl)
-      setValue('cover_url', dataUrl)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  async function onSubmit(data: BookFormData) {
-    setSubmitting(true)
-    try {
-      const genreList = data.genres.split(',').map((g) => g.trim()).filter(Boolean)
-      const currentTheme: AuraTheme = 'solar_dawn'
-      
-      const bookPayload = {
-        title: data.title,
-        author: data.author,
-        synopsis: data.synopsis,
-        description: data.synopsis,
-        genres: genreList,
-        tags: genreList.map((g) => g.toLowerCase()),
-        cover_url: data.cover_url ?? '',
-        aura_theme: currentTheme,
-        reading_time_minutes: data.reading_time_minutes,
-        total_chapters: data.chapters.length,
-        featured: false,
-        published: true,
-      }
-
-      const chapterPayload = data.chapters.map((ch, idx) => ({
-        chapter_number: idx + 1,
-        title: ch.title,
-        content: `Audio Episode Stream ${idx + 1}`,
-        audio_url: ch.audio_url,
-        is_audio_premium: ch.is_audio_premium ?? false,
-        is_locked: ch.is_audio_premium ?? false,
-        word_count: 500,
-      }))
-
-      if (editingBook) {
-        await updateBook(editingBook.id, bookPayload, chapterPayload)
-        setEditingBook(null)
-        showSuccess('Changes saved successfully!')
-      } else {
-        await addBook(bookPayload, chapterPayload)
-        showSuccess('Audiobook Series Successfully Published!')
-      }
-
-      clearForm()
-    } catch (err: any) {
-      alert("Error: " + (err.message || err))
-    } finally {
-      setSubmitting(false)
+      console.error(err)
+      alert('Error publishing series context.')
     }
   }
 
   return (
-    <div className="pt-20 pb-16 px-4 sm:px-6 min-h-screen max-w-4xl mx-auto text-slate-200">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="size-9 rounded-xl flex items-center justify-center bg-slate-800">
-            <Sparkles className="size-4 text-emerald-400" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white">Fablex Creator Studio</h1>
-            <p className="text-xs text-muted-foreground">Copyright-Free AI Audio Workspace</p>
-          </div>
+    <div className="min-h-screen bg-zinc-950 text-white p-6 space-y-8">
+      {/* Header Panel */}
+      <div className="flex items-center gap-4">
+        <button onClick={() => navigate({ page: 'home' })} className="p-2 hover:bg-zinc-900 rounded-full border border-zinc-800">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <Headphones className="w-5 h-5 text-emerald-400" /> Fablex Backoffice Studio
+          </h1>
+          <p className="text-xs text-zinc-500">Manage audio items content distribution pipeline grid.</p>
         </div>
       </div>
 
-      {successMsg && (
-        <div className="mb-6 flex items-center gap-3 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
-          <Check className="size-5 shrink-0" />
-          <p className="text-sm font-semibold">{successMsg}</p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <Card className="border-slate-800 bg-slate-900/60 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Film className="size-4 text-slate-400" />
-              Audiobook Series Metadata
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field>
-              <FieldLabel className="text-slate-300">Series Title *</FieldLabel>
-              <Input placeholder="Enter series title…" className="bg-slate-950 border-slate-800 text-white" {...register('title')} />
-            </Field>
-
-            <Field>
-              <FieldLabel className="text-slate-300">Narrator / Author *</FieldLabel>
-              <Input placeholder="Narrator name…" className="bg-slate-950 border-slate-800 text-white" {...register('author')} />
-            </Field>
-
-            <Field className="sm:col-span-2">
-              <FieldLabel className="text-slate-300">Series Synopsis *</FieldLabel>
-              <Input placeholder="Write a short dramatic hook for listeners..." className="bg-slate-950 border-slate-800 text-white" {...register('synopsis')} />
-            </Field>
-
-            <Field>
-              <FieldLabel className="text-slate-300">Genres *</FieldLabel>
-              <Input placeholder="Horror, Thriller, Mythological" className="bg-slate-950 border-slate-800 text-white" {...register('genres')} />
-            </Field>
-
-            <Field>
-              <FieldLabel className="text-slate-300">Total Playtime (minutes)</FieldLabel>
-              <Input type="number" className="bg-slate-950 border-slate-800 text-white" {...register('reading_time_minutes')} />
-            </Field>
-
-            <Field className="sm:col-span-2">
-              <FieldLabel className="text-slate-300">Creative Cover Album</FieldLabel>
-              <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={handleCoverFile} />
-              {coverPreview ? (
-                <div className="relative flex items-center gap-4 p-3 rounded-xl border border-slate-800 bg-slate-950">
-                  <img src={coverPreview} alt="Cover preview" className="size-20 rounded-lg object-cover" />
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs border-slate-800 text-slate-300" onClick={() => fileInputRef.current?.click()}>Change poster</Button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Area: Manage Books Feed Control */}
+        <div className="lg:col-span-1 bg-zinc-900/40 border border-zinc-900 rounded-2xl p-4 space-y-4">
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Active Catalog ({books.length})</h2>
+          
+          {books.length === 0 ? (
+            <p className="text-xs text-zinc-500 italic">No audio properties saved in database yet.</p>
+          ) : (
+            <div className="space-y-2.5 max-h-[500px] overflow-y-auto no-scrollbar">
+              {books.map((b) => (
+                <div key={b.id} className="flex items-center justify-between p-3 bg-zinc-900/80 border border-zinc-800/60 rounded-xl">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img src={b.cover_url} alt="" className="w-10 h-10 object-cover rounded-md border border-zinc-800" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold truncate text-zinc-200">{b.title}</p>
+                      <p className="text-xs text-zinc-500 truncate">By {b.author}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      if (confirm(`Are you sure you want to completely delete "${b.title}"?`)) {
+                        await deleteBook(b.id)
+                        alert('Book dropped from remote master schema.')
+                      }
+                    }}
+                    className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                    title="Delete Series"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-              ) : (
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex flex-col items-center gap-3 py-6 px-4 rounded-xl border border-dashed border-slate-800 bg-slate-950 hover:bg-slate-900/40">
-                  <ImagePlus className="size-5 text-emerald-400" />
-                  <p className="text-xs text-slate-400">Tap to upload professional book poster</p>
-                </button>
-              )}
-            </Field>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-800 bg-slate-900/60 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Wand2 className="size-4 text-emerald-400" />
-              1. AI Voice Lab (Paste Story Here First)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <textarea
-              value={aiText}
-              onChange={(e) => setAiText(e.target.value)}
-              placeholder="Apni kahani ya chapter ka poora text yahan paste karo bhai... Phir neeche wale episode par jaakar 'Generate Voice' daba dena."
-              className="w-full min-h-[140px] bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-700 font-sans resize-y"
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-800 bg-slate-900/60 backdrop-blur-md">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <Music className="size-4 text-slate-400" />
-                2. Audio Tracks Sequence Manager
-              </CardTitle>
-              <Button type="button" size="sm" variant="outline" className="text-xs border-slate-700 text-slate-200" onClick={() => append({ title: `Episode ${fields.length + 1}`, audio_url: '', is_audio_premium: fields.length >= 2 })}>
-                <Plus className="size-3.5 mr-1" /> Add Track
-              </Button>
+              ))}
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {fields.map((field, idx) => (
-              <div key={field.id} className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-900/40" onClick={() => setExpandedChapter(expandedChapter === idx ? null : idx)}>
-                  <div className="flex items-center gap-3">
-                    <div className="size-6 rounded-md bg-slate-800 flex items-center justify-center text-[11px] font-bold text-emerald-400">{idx + 1}</div>
-                    <span className="text-sm font-medium text-slate-300">{watch(`chapters.${idx}.title`) || `Episode ${idx + 1}`}</span>
-                  </div>
-                  {expandedChapter === idx ? <ChevronUp className="size-4 text-slate-500" /> : <ChevronDown className="size-4 text-slate-500" />}
-                </div>
-
-                {expandedChapter === idx && (
-                  <div className="px-4 pb-4 pt-2 space-y-3 bg-slate-900/20 border-t border-slate-900/60">
-                    <Field>
-                      <FieldLabel className="text-slate-400 text-xs">Track Title *</FieldLabel>
-                      <Input placeholder="Episode title…" className="h-8 bg-slate-950 border-slate-800 text-white text-xs" {...register(`chapters.${idx}.title`)} />
-                    </Field>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
-                      <div className="sm:col-span-3">
-                        <Field>
-                          <FieldLabel className="text-slate-400 text-xs">Audio File URL (Direct MP3 Link)</FieldLabel>
-                          <Input placeholder="AI will generate this link automatically..." className="h-8 bg-slate-950 border-slate-800 text-white text-xs font-mono" {...register(`chapters.${idx}.audio_url`)} />
-                        </Field>
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={() => generateAIAudio(idx)}
-                        disabled={generatingAudio === idx}
-                        className="w-full h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center justify-center gap-1"
-                      >
-                        {generatingAudio === idx ? (
-                          <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                          <>
-                            <Wand2 className="size-3.5" />
-                            Generate Voice
-                          </>
-                        )}
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5 bg-slate-900/40 rounded-lg border border-slate-800">
-                      <span className="text-xs font-semibold text-slate-300">Subscription Paywall</span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" {...register(`chapters.${idx}.is_audio_premium`)} />
-                        <div className="w-9 h-5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500 after:bg-white"></div>
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-xs text-slate-500">Full Commercial Rights Activated.</p>
-          <Button type="submit" className="bg-slate-100 hover:bg-white text-slate-950 font-bold px-6 h-10 shadow-lg rounded-xl" disabled={submitting}>
-            {submitting ? <Loader2 className="size-4 animate-spin" /> : 'Publish Audio Series'}
-          </Button>
+          )}
         </div>
-      </form>
+
+        {/* Right Area: Form Upload Creation Matrix */}
+        <div className="lg:col-span-2 bg-zinc-900/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Upload New Audio Series Master</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-zinc-400">Series Title *</label>
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-700" placeholder="Enter title" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-zinc-400">Narrator / Author *</label>
+              <input type="text" value={author} onChange={e => setAuthor(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-700" placeholder="Narrator name" />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-zinc-400">Series Synopsis *</label>
+            <textarea value={synopsis} onChange={e => setSynopsis(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm h-16 focus:outline-none focus:border-zinc-700 resize-none" placeholder="Write dynamic description" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-zinc-400">Genre *</label>
+              <select value={genres} onChange={e => setGenres(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-700 text-zinc-300">
+                <option value="Horror">Horror</option>
+                <option value="Thriller">Thriller</option>
+                <option value="Sci-Fi">Sci-Fi</option>
+                <option value="Epic">Epic</option>
+                <option value="Mystery">Mystery</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-zinc-400">Cover Poster URL</label>
+              <input type="text" value={coverUrl} onChange={e => setCoverUrl(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-700" placeholder="https://example.com/image.jpg" />
+            </div>
+          </div>
+
+          {/* AI Voice Lab Workspace Card */}
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3">
+            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+              1. AI Voice Lab (Paste Story Script)
+            </h3>
+            <div className="space-y-1">
+              <input type="text" value={chapterTitle} onChange={e => setChapterTitle(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-300 focus:outline-none" placeholder="Chapter Track Title" />
+            </div>
+            <div className="space-y-1">
+              <textarea value={chapterContent} onChange={e => setChapterContent(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-300 h-24 focus:outline-none resize-none" placeholder="Apni kahani ya chapter ka poora text yahan paste karo bhai... AI isi text ko pure audio stream mein convert karega." />
+            </div>
+          </div>
+
+          <button onClick={handlePublish} className="w-full py-3 bg-white text-black font-semibold text-sm rounded-xl hover:bg-zinc-200 transition flex items-center justify-center gap-2">
+            <Plus className="w-4 h-4" /> Publish Audio Series Catalog
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
