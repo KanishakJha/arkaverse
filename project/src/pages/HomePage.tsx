@@ -106,7 +106,12 @@ export function HomePage() {
       <main className="flex-1 flex flex-col bg-[#f8fafc] overflow-y-auto custom-scrollbar p-6 md:p-8">
         
         <div className="max-w-5xl w-full mx-auto mb-8">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl mb-1">
+          {/* ✨ SECRET BYPASS CODE INJECTED HERE */}
+          <h1 
+            onClick={() => navigate({ page: 'admin' })}
+            className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl mb-1 cursor-pointer hover:opacity-80 transition-all select-none"
+            title="Go to Studio"
+          >
             Find your next audiobook
           </h1>
           <p className="text-sm text-slate-500 mb-6">Explore professional multi-genre audio stories</p>
@@ -194,4 +199,3 @@ export function HomePage() {
     </div>
   )
 }
-
