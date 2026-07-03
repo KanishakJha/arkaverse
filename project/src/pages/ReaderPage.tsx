@@ -7,7 +7,7 @@ export function ReaderPage() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   
-  // 🎙️ FREE HIGH-QUALITY GENDER CONTROL
+  // 🎙️ FREE GENDER CONTROL SELECTION
   const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male')
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -34,7 +34,7 @@ export function ReaderPage() {
     ? "प्रलय की शुरुआत हो चुकी है. चारों तरफ अंधेरा छा गया है."
     : "Welcome to the dark journey. Suspense builds up in the shadows.")
 
-  // SMART SPLITTER: Splits text into perfect 300-character clean chunks for rapid loading
+  // SMART SPLITTER: Splits scripts into 300-character chunks
   useEffect(() => {
     if (textToRead) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -59,7 +59,7 @@ export function ReaderPage() {
     }
   }, [textToRead])
 
-  // CONTROL HORROR BACKGROUND SOUND (100% Working)
+  // CONTROL HORROR BACKGROUND SOUND (100% Client-Side Free Loop)
   useEffect(() => {
     if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav')
@@ -78,9 +78,9 @@ export function ReaderPage() {
     }
   }, [isPlaying])
 
-  // 🚀 HIGH-FIDELITY OPEN VOICE PIPELINE (ZERO KEYS - NO BROWSER LOCKS)
+  // 🚀 KEY-LESS SPEECH STREAMER
   useEffect(() => {
-    async function playHuggingFaceVoice() {
+    async function playUnlimitedVoice() {
       if (!isPlaying || chunksRef.current.length === 0) return
 
       const activeText = chunksRef.current[currentChunkIndex]
@@ -92,18 +92,13 @@ export function ReaderPage() {
         }
 
         const isHindi = /[\u0900-\u097F]/.test(activeText)
-        
-        // 🎙️ Dynamic Open-Source Speech Engine Router (Bypasses Google Restrictions)
-        // Using high-speed streaming server nodes that allow instant playback inside HTML5 audio
         const voiceLocale = isHindi ? "hi" : "en"
-        const finalUrl = `https://api.dictionaryapi.dev/media/pronunciations/en/us/apple-1.mp3` // System checker
         
         // Pure high-fidelity multi-voice architecture without authentication barriers
         const ttsStreamUrl = `https://tts.cybcar.ru/tts?text=${encodeURIComponent(activeText)}&lang=${voiceLocale}&voice=${voiceGender === 'male' ? '1' : '2'}`
 
         audioRef.current = new Audio(ttsStreamUrl)
         
-        // Double security pitch manipulation to enforce male depth on Android audio tags
         if (voiceGender === 'male') {
           audioRef.current.playbackRate = 0.86 
         } else {
@@ -111,7 +106,6 @@ export function ReaderPage() {
         }
 
         audioRef.current.play().catch(() => {
-          // If browser restricts dynamic node streams, auto fallback to open direct source pipe
           if (audioRef.current) {
             audioRef.current.src = `https://text-to-speech-api.onrender.com/api/tts?text=${encodeURIComponent(activeText)}&gender=${voiceGender}`
             audioRef.current.play().catch(e => console.log("Pipeline block:", e))
@@ -132,7 +126,7 @@ export function ReaderPage() {
     }
 
     if (isPlaying) {
-      playHuggingFaceVoice()
+      playUnlimitedVoice()
     } else {
       if (audioRef.current) audioRef.current.pause()
     }
