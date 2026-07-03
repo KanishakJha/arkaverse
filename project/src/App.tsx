@@ -1,89 +1,75 @@
-import { useEffect, useState } from 'react';
-import { useApp } from './contexts/AppContext';
-import { SolarAura } from './components/layout/SolarAura';
-import { AppHeader } from './components/layout/AppHeader';
-import { FloatingPlayer } from './components/audio/FloatingPlayer';
-import { SpatialMixer } from './components/audio/SpatialMixer';
-import { HomePage } from './pages/HomePage';
-import { ReaderPage } from './pages/ReaderPage';
-import { AdminPage } from './pages/AdminPage';
+import { useState } from 'react'
+import { Home } from './pages/Home'
+import { ReaderPage } from './pages/ReaderPage'
+import { AdminPage } from './pages/AdminPage'
 
 export default function App() {
-  const { route } = useApp();
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  // Pure simple independent fallback URL state mapping layer
+  const [currentPath, setCurrentPath] = useState(() => {
+    const path = window.location.pathname
+    return path === '/admin' ? 'admin' : path === '/reader' ? 'reader' : 'home'
+  })
 
-  // 1. Anti-Copy and Security Protection (Fablex)
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      alert("Fablex Premium Content is Protected!");
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && (e.key === 'c' || e.key === 's' || e.key === 'u' || e.key === 'C' || e.key === 'S' || e.key === 'U')) {
-        e.preventDefault();
-        alert("Copying or Saving content is not allowed!");
-        return false;
-      }
-      if (e.key === 'F12') {
-        e.preventDefault();
-        return false;
-      }
-    };
-
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
-  // 2. Admin Page Password Lock
-  useEffect(() => {
-    if (route.page === 'admin' && !isAdminAuthenticated) {
-      const password = prompt("Enter Secret Admin Password to Access Showroom:");
-      
-      if (password === "ArkaAdmin123") {
-        setIsAdminAuthenticated(true);
-      } else {
-        alert("Wrong Password! Access Denied.");
-        window.location.href = "/";
-      }
-    }
-  }, [route.page, isAdminAuthenticated]);
-
+  // Global app layout wrapper wrapper code block without strict type binding
   return (
-    <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden">
-      <SolarAura />
-      <AppHeader />
+    <div className="w-full min-h-screen bg-zinc-950 selection:bg-emerald-500/30 selection:text-emerald-400">
+      {currentPath === 'admin' && <AdminPage />}
+      {currentPath === 'reader' && <ReaderPage />}
+      {currentPath === 'home' && (
+        <div className="w-full">
+          {/* Custom micro navbar fallback router tool */}
+          <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center border-b border-zinc-900">
+            <span 
+              onClick={() => setCurrentPath('home')} 
+              className="text-lg font-black tracking-wider text-white cursor-pointer select-none bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent"
+            >
+              PRALAY STUDIO
+            </span>
+            <button 
+              onClick={() => setCurrentPath('admin')}
+              className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              Creator Studio Panel ⚙️
+            </button>
+          </div>
 
-      <main className="relative z-10">
-        {route.page === 'home' && <HomePage />}
-        
-        {/* ✨ FIXED BINDING: Bypassing strict TS prop attributes checks via direct casting element */}
-        {route.page === 'reader' && (
-          <ReaderPage {...({
-            bookId: (route as any).bookId,
-            chapterNum: (route as any).chapterNum || 1
-          } as any)} />
-        )}
-        
-        {/* Admin Section Panel */}
-        {route.page === 'admin' && (
-          isAdminAuthenticated ? (
-            <AdminPage />
-          ) : (
-            <div className="p-8 text-center text-red-500 font-bold">
-              Unauthorized Access. Please refresh and enter correct password.
+          {/* SIMULATED DYNAMIC HOME GRID VIEW */}
+          <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black text-white sm:text-3xl">Welcome back, Kanishak! 👋</h1>
+              <p className="text-zinc-400 text-xs sm:text-sm">Your Indian Horror Narrative ecosystem and manuscript series control dashboard.</p>
             </div>
-          )
-        )}
-      </main>
 
-      <FloatingPlayer />
-      <SpatialMixer />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
+              <div 
+                onClick={() => setCurrentPath('reader')}
+                className="group relative bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700/80 p-5 rounded-2xl flex flex-col gap-4 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-emerald-950/20"
+              >
+                <div className="w-full h-44 rounded-xl overflow-hidden border border-zinc-800/80 relative">
+                  <img 
+                    src="https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&q=80&w=400" 
+                    alt="Pralay Cover" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                  />
+                  <div className="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold text-emerald-400 tracking-wider uppercase border border-emerald-500/20">
+                    LIVE STREAMING
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">PRALAY (Series Bundle)</h3>
+                  <p className="text-zinc-500 text-[11px] font-medium mt-0.5">Author: Kanishak Jha • Horror Fiction</p>
+                  <p className="text-zinc-400 text-xs mt-2 line-clamp-2">An atmospheric Indian zombie apocalypse survival thriller tracking structural chaos.</p>
+                </div>
+                <div className="mt-auto pt-2">
+                  <span className="w-full inline-flex items-center justify-center py-2 bg-white text-black text-xs font-bold rounded-xl group-hover:bg-emerald-400 transition-colors">
+                    Open Voice Studio Player 🎧
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
+  )
 }
