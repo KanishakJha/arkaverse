@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { ChevronLeft, ChevronRight, User, UserCheck, Play, Pause, Lock } from 'lucide-react'
-import { PaywallModal } from '../components/PaywallModal' // 🚀 Import checkout sheet modal
+import { PaywallModal } from '../components/PaywallModal'
 
 export function ReaderPage() {
   const { route, books, chapters, isPlaying, setIsPlaying, navigate } = useApp()
@@ -10,7 +10,7 @@ export function ReaderPage() {
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
   
-  // 🔐 MONETIZATION MODAL TRIGGER STATES Matrix Setup
+  // 🔐 MONETIZATION MODAL TRIGGER STATES
   const [isPaywallOpen, setIsPaywallOpen] = useState(false)
   
   const chunksRef = useRef<string[]>([])
@@ -19,12 +19,12 @@ export function ReaderPage() {
   const bookChapters = book ? chapters[book.id] || [] : []
   const activeChapter = bookChapters[currentChapterIndex]
 
-  // 🔐 FEATURE 6: Read real-time locked status parameter on individual row item
+  // 🔐 FEATURE 6: Read real-time locked status parameter safely
   const isPremiumLocked = activeChapter?.is_locked === true 
   
   const textToRead = activeChapter?.content || ""
 
-  // Dynamic chunk parsing array logic
+  // Dynamic chunk parsing logic
   useEffect(() => {
     if (textToRead && !isPremiumLocked) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
@@ -91,11 +91,14 @@ export function ReaderPage() {
         const dynamicNode = document.getElementById(`chunk-node-${currentChunkIndex + 1}`)
         if (dynamicNode) dynamicNode.scrollIntoView({ behavior: 'smooth', block: 'center' })
       } else {
-        setIsPlaying(false)
+        if (setIsPlaying) setIsPlaying(false)
       }
     }
 
-    utterance.onerror = () => setIsPlaying(false)
+    utterance.onerror = () => {
+      if (setIsPlaying) setIsPlaying(false)
+    }
+
     window.speechSynthesis.speak(utterance)
 
   }, [isPlaying, currentChunkIndex, voiceGender, playbackSpeed, isPremiumLocked, setIsPlaying])
@@ -111,7 +114,7 @@ export function ReaderPage() {
       
       {/* HEADER NAV */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-900 justify-between backdrop-blur sticky top-0 bg-zinc-950/80 z-40">
-        <button type="button" onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); navigate({ page: 'home' }); }} className="p-2 hover:bg-zinc-900 rounded-full transition">
+        <button type="button" onClick={() => { window.speechSynthesis.cancel(); if (setIsPlaying) setIsPlaying(false); navigate({ page: 'home' }); }} className="p-2 hover:bg-zinc-900 rounded-full transition">
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div className="text-center flex-1 min-w-0">
@@ -121,7 +124,7 @@ export function ReaderPage() {
         <div className="w-10" />
       </div>
 
-      {/* RENDER CORE BODY PANEL */}
+      {/* RENDER CORE BODY DISPLAY PANEL */}
       <div className="flex-1 flex flex-col items-center p-6 space-y-6 max-w-xl mx-auto w-full">
         <div className="w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border border-zinc-800">
           <img src={book.cover_url} alt="" className="w-full h-full object-cover" />
@@ -129,10 +132,10 @@ export function ReaderPage() {
 
         {/* VOICE SWITCH CONTROLS */}
         <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-full max-w-xs justify-between text-xs font-bold">
-          <button type="button" onClick={() => { window.speechSynthesis.cancel(); setVoiceGender('male'); setCurrentChunkIndex(0); }} className={'flex-1 py-2 rounded-lg transition flex items-center justify-center gap-1.5 ' + (voiceGender === 'male' ? 'bg-white text-black' : 'text-zinc-400')}>
+          <button type="button" onClick={() => { window.speechSynthesis.cancel(); setVoiceGender('male'); setCurrentChunkIndex(0); }} className={'flex-1 py-2 rounded-lg transition flex items-center justify-center gap-1.5 ' + (voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400')}>
             <UserCheck className="w-3.5 h-3.5" /> Male Track
           </button>
-          <button type="button" onClick={() => { window.speechSynthesis.cancel(); setVoiceGender('female'); setCurrentChunkIndex(0); }} className={'flex-1 py-2 rounded-lg transition flex items-center justify-center gap-1.5 ' + (voiceGender === 'female' ? 'bg-white text-black' : 'text-zinc-400')}>
+          <button type="button" onClick={() => { window.speechSynthesis.cancel(); setVoiceGender('female'); setCurrentChunkIndex(0); }} className={'flex-1 py-2 rounded-lg transition flex items-center justify-center gap-1.5 ' + (voiceGender === 'female' ? 'bg-white text-black shadow' : 'text-zinc-400')}>
             <User className="w-3.5 h-3.5" /> Female Track
           </button>
         </div>
@@ -181,13 +184,13 @@ export function ReaderPage() {
           </select>
 
           <div className="flex items-center gap-5">
-            <button type="button" disabled={currentChapterIndex === 0} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.max(0, prev - 1)); }} className={'p-2 ' + (currentChapterIndex === 0 ? 'text-zinc-800' : 'text-zinc-400')}>
+            <button type="button" disabled={currentChapterIndex === 0} onClick={() => { window.speechSynthesis.cancel(); if (setIsPlaying) setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.max(0, prev - 1)); }} className={'p-2 ' + (currentChapterIndex === 0 ? 'text-zinc-800' : 'text-zinc-400')}>
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <button type="button" disabled={isPremiumLocked} onClick={() => setIsPlaying(!isPlaying)} className="p-4 bg-white text-black rounded-full transition transform active:scale-95 disabled:bg-zinc-900 disabled:text-zinc-700 flex items-center justify-center shadow-xl">
+            <button type="button" disabled={isPremiumLocked} onClick={() => { if (setIsPlaying) setIsPlaying(!isPlaying); }} className="p-4 bg-white text-black rounded-full transition transform active:scale-95 disabled:bg-zinc-900 disabled:text-zinc-700 flex items-center justify-center shadow-xl">
               {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
             </button>
-            <button type="button" disabled={currentChapterIndex >= bookChapters.length - 1} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1)); }} className={'p-2 ' + (currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-800' : 'text-zinc-400')}>
+            <button type="button" disabled={currentChapterIndex >= bookChapters.length - 1} onClick={() => { window.speechSynthesis.cancel(); if (setIsPlaying) setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1)); }} className={'p-2 ' + (currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-800' : 'text-zinc-400')}>
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
@@ -195,7 +198,7 @@ export function ReaderPage() {
         </div>
       </div>
 
-      {/* 🚀 BILLING ARCHITECTURE BRIDGE GATE OVERLAY SHEET VIEW */}
+      {/* BILLING ARCHITECTURE BRIDGE GATE OVERLAY */}
       <PaywallModal isOpen={isPaywallOpen} onClose={() => setIsPaywallOpen(false)} />
     </div>
   )
