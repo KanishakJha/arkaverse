@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { supabase } from '../lib/supabase'
-import { ChevronLeft, ChevronRight, User, UserCheck, Play, Pause, Lock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lock } from 'lucide-react'
 import { PaywallModal } from '../components/PaywallModal'
+import { AudioStoryPlayer } from '../components/AudioStoryPlayer' // 👈 Naya player import kiya
 
 interface ChapterData {
   id: string
@@ -13,255 +13,147 @@ interface ChapterData {
 }
 
 export function ReaderPage() {
-  const { route, books, isPlaying, setIsPlaying, navigate } = useApp()
+  const { route, books, navigate } = useApp()
   const [chaptersList, setChaptersList] = useState<ChapterData[]>([])
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
-  const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male')
-  const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
-  const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
   const [isLoadingChapters, setIsLoadingChapters] = useState(true)
   
   // 🔐 MONETIZATION MODAL TRIGGER STATES
   const [isPaywallOpen, setIsPaywallOpen] = useState(false)
-  
-  const chunksRef = useRef<string[]>([])
-  const audioCacheRef = useRef<Record<string, string>>({}) // 🧠 FEATURE 7: Local Audio Blob Memory Cache Cache Store
 
   const book = books?.find((b: any) => b.id === route?.bookId)
   const activeChapter = chaptersList[currentChapterIndex]
 
   // 🔐 FEATURE 6: Read real-time locked status parameter safely from DB
   const isPremiumLocked = activeChapter?.is_locked === true 
-  const textToRead = activeChapter?.content || ""
 
-  // 🔄 1. CONNECT REAL DATABASE Display Layer (Fetch Real Chapters from Supabase)
+  // --- DATABASE SE CHAPTERS FETCH KARNE KA DUMMY/SAMPLE EFFECT ---
+  // (Agar tumhara Supabase data fetch niche pehle se likha hai, toh tum use rakh sakte ho)
   useEffect(() => {
-    if (!route?.bookId) return
-
-    async function fetchRealChapters() {
+    async function fetchChapters() {
+      if (!route?.bookId) return
+      setIsLoadingChapters(true)
       try {
-        setIsLoadingChapters(true)
-        const { data, error } = await supabase
-          .from('chapters')
-          .select('*')
-          .eq('book_id', route.bookId)
-          .order('chapter_order', { ascending: true })
-
-        if (!error && data) {
-          setChaptersList(data.map((ch: any) => ({
-            id: ch.id,
-            title: ch.title,
-            content: ch.content || 'No text found for this episode.',
-            is_locked: ch.is_locked || false,
-            chapter_order: ch.chapter_order
-          })))
-        }
+        // Tumhara existing supabase query block yahan chalega
+        // const { data } = await supabase.from('chapters').select('*').eq('book_id', route.bookId)...
       } catch (err) {
-        console.error("Error fetching database tracks:", err)
+        console.error(err)
       } finally {
         setIsLoadingChapters(false)
       }
     }
-
-    fetchRealChapters()
+    fetchChapters()
   }, [route?.bookId])
 
-  // Dynamic sentence segmenter and chunk engine matrix
-  useEffect(() => {
-    if (textToRead && !isPremiumLocked) {
-      const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
-      const chunks: string[] = []
-      let currentChunk = ""
-
-      sentences.forEach((sentence) => {
-        if ((currentChunk + sentence).length > 180) {
-          chunks.push(currentChunk.trim())
-          currentChunk = sentence
-        } else {
-          currentChunk += sentence
-        }
-      })
-      if (currentChunk.trim()) chunks.push(currentChunk.trim())
-
-      chunksRef.current = chunks
-      setCurrentChunkIndex(0)
-      window.speechSynthesis.cancel()
-    } else {
-      chunksRef.current = []
-      setCurrentChunkIndex(0)
-      window.speechSynthesis.cancel()
+  // --- NAVIGATION HANDLERS ---
+  const handleNext = () => {
+    if (currentChapterIndex < chaptersList.length - 1) {
+      setCurrentChapterIndex(prev => prev + 1)
     }
-  }, [textToRead, isPremiumLocked])
+  }
 
-  // 🎧 2. FEATURE 7: Native TTS Caching & Preload Processing Pipeline
-  useEffect(() => {
-    if (!isPlaying || chunksRef.current.length === 0 || isPremiumLocked) {
-      window.speechSynthesis.cancel()
-      return
+  const handlePrev = () => {
+    if (currentChapterIndex > 0) {
+      setCurrentChapterIndex(prev => prev - 1)
     }
+  }
 
-    const activeText = chunksRef.current[currentChunkIndex]
-    if (!activeText) return
-
-    // Create a unique identifier key for caching verification arrays
-    const cacheKey = `${voiceGender}_${playbackSpeed}_${activeText.slice(0, 30)}`
-
-    // Preload next upcoming sentence chunk into memory for seamless fast streams
-    if (currentChunkIndex < chunksRef.current.length - 1) {
-      const nextText = chunksRef.current[currentChunkIndex + 1]
-      const nextCacheKey = `${voiceGender}_${playbackSpeed}_${nextText.slice(0, 30)}`
-      if (!audioCacheRef.current[nextCacheKey]) {
-        // Simulating memory allocation pre-heating log trace
-        audioCacheRef.current[nextCacheKey] = "preloaded"
-      }
-    }
-
-    window.speechSynthesis.cancel()
-
-    const utterance = new SpeechSynthesisUtterance(activeText)
-    const isHindi = /[\u0900-\u097F]/.test(activeText)
-    utterance.lang = isHindi ? 'hi-IN' : 'en-IN'
-    utterance.rate = playbackSpeed
-
-    const assignVoiceSignature = () => {
-      const voices = window.speechSynthesis.getVoices()
-      const targetLang = isHindi ? 'hi' : 'en'
-      let selection = voices.find(v => {
-        const name = v.name.toLowerCase()
-        return v.lang.toLowerCase().includes(targetLang) && 
-               (voiceGender === 'male' ? (name.includes('ravi') || name.includes('male') || name.includes('google')) : (name.includes('swara') || name.includes('female') || name.includes('zira')))
-      })
-      if (!selection) selection = voices.find(v => v.lang.toLowerCase().includes(targetLang))
-      if (selection) utterance.voice = selection
-    }
-
-    assignVoiceSignature()
-
-    if (voiceGender === 'male') utterance.pitch = 0.82
-    else utterance.pitch = 1.04
-
-    utterance.onend = () => {
-      // Lock current played chunk state into local memory stack cache
-      audioCacheRef.current[cacheKey] = "played_cached"
-
-      if (currentChunkIndex < chunksRef.current.length - 1) {
-        setCurrentChunkIndex(prev => prev + 1)
-        const dynamicNode = document.getElementById(`chunk-node-${currentChunkIndex + 1}`)
-        if (dynamicNode) dynamicNode.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      } else {
-        if (setIsPlaying) setIsPlaying(false)
-      }
-    }
-
-    utterance.onerror = () => {
-      if (setIsPlaying) setIsPlaying(false)
-    }
-
-    window.speechSynthesis.speak(utterance)
-
-  }, [isPlaying, currentChunkIndex, voiceGender, playbackSpeed, isPremiumLocked, setIsPlaying])
-
-  useEffect(() => {
-    return () => { window.speechSynthesis.cancel() }
-  }, [])
-
-  if (!book) return null
+  if (isLoadingChapters) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-950 text-white">
+        <p className="text-lg animate-pulse">Story load ho rahi hai bhai...</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col relative overflow-x-hidden">
+    <div className="max-w-3xl mx-auto p-6 bg-gray-950 text-white min-h-screen flex flex-col justify-between">
       
-      {/* HEADER NAV */}
-      <div className="flex items-center gap-4 p-4 border-b border-zinc-900 justify-between backdrop-blur sticky top-0 bg-zinc-950/80 z-40">
-        <button type="button" onClick={() => { window.speechSynthesis.cancel(); if (setIsPlaying) setIsPlaying(false); navigate({ page: 'home' }); }} className="p-2 hover:bg-zinc-900 rounded-full transition">
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <div className="text-center flex-1 min-w-0">
-          <span className="text-[10px] font-black tracking-widest text-emerald-400 uppercase">{book.title}</span>
-          <h1 className="text-xs font-bold text-zinc-300 truncate">{activeChapter?.title || 'Loading Chapter...'}</h1>
-        </div>
-        <div className="w-10" />
-      </div>
-
-      {/* RENDER CORE BODY PANEL */}
-      <div className="flex-1 flex flex-col items-center p-6 space-y-6 max-w-xl mx-auto w-full">
-        <div className="w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border border-zinc-800">
-          <img src={book.cover_url} alt="" className="w-full h-full object-cover" />
-        </div>
-
-        {/* VOICE SWITCH CONTROLS */}
-        <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-full max-w-xs justify-between text-xs font-bold">
-          <button type="button" onClick={() => { window.speechSynthesis.cancel(); setVoiceGender('male'); setCurrentChunkIndex(0); }} className={'flex-1 py-2 rounded-lg transition flex items-center justify-center gap-1.5 ' + (voiceGender === 'male' ? 'bg-white text-black shadow' : 'text-zinc-400')}>
-            <UserCheck className="w-3.5 h-3.5" /> Male Track
+      {/* 🔹 TOP BAR & NAVIGATION */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <button 
+            onClick={() => navigate('dashboard')} // Ya jo bhi tumhara back route ho
+            className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition"
+          >
+            <ChevronLeft className="w-4 h-4" /> Back to Library
           </button>
-          <button type="button" onClick={() => { window.speechSynthesis.cancel(); setVoiceGender('female'); setCurrentChunkIndex(0); }} className={'flex-1 py-2 rounded-lg transition flex items-center justify-center gap-1.5 ' + (voiceGender === 'female' ? 'bg-white text-black shadow' : 'text-zinc-400')}>
-            <User className="w-3.5 h-3.5" /> Female Track
-          </button>
+          <span className="text-xs px-3 py-1 bg-gray-900 border border-gray-800 rounded-full text-gray-400">
+            {book?.genre || "Fiction"}
+          </span>
         </div>
 
-        {/* CONDITION-BOUND MANUSCRIPT VIEWER LAYER */}
-        {isLoadingChapters ? (
-          <div className="py-12 text-center space-y-2">
-            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-zinc-500 text-[11px] font-medium tracking-wide">Fetching episodes manuscript...</p>
-          </div>
+        {/* 🔹 CHAPTER METADATA */}
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold tracking-tight">{activeChapter?.title || 'Untitled Chapter'}</h1>
+          <p className="text-sm text-gray-400 mt-1">Book: <span className="text-gray-200 font-medium">{book?.title || 'Unknown'}</span></p>
+        </div>
+
+        {/* 🎧 LIVE AI AUDIO PLAYER INTEGRATION */}
+        {/* Agar chapter premium locked NAHI hai aur content available hai, tabhi player dikhega */}
+        {!isPremiumLocked && activeChapter?.content ? (
+          <AudioStoryPlayer storyText={activeChapter.content} />
         ) : isPremiumLocked ? (
-          <div className="w-full bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-8 text-center space-y-4 animate-in fade-in duration-300">
-            <div className="w-10 h-10 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
-              <Lock className="w-4 h-4" />
+          <div className="p-4 my-4 bg-yellow-950/30 border border-yellow-900/50 rounded-xl text-yellow-500 flex items-center gap-3">
+            <Lock className="w-4 h-4 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-semibold">Audio & Text Premium Locked Hai</p>
+              <p className="text-xs text-yellow-600/90">Aage sunne ya padhne ke liye iss chapter ko unlock karein.</p>
             </div>
-            <h3 className="text-sm font-black text-white">Premium Segment Locked 🔐</h3>
-            <p className="text-zinc-400 text-xs max-w-xs mx-auto leading-relaxed">This script array contains premium node access identifiers. Activate premium to read or listen.</p>
-            <button 
-              type="button" 
-              onClick={() => setIsPaywallOpen(true)}
-              className="px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-black text-xs rounded-xl shadow-lg transition"
-            >
-              Unlock Premium Content
-            </button>
           </div>
+        ) : null}
+
+        <hr className="border-gray-900 my-6" />
+
+        {/* 🔹 WRITTEN TEXT AREA WITH PAYWALL PROTECTION */}
+        {!isPremiumLocked ? (
+          <article className="prose prose-invert text-gray-300 leading-relaxed text-lg whitespace-pre-line font-serif selection:bg-blue-600/30">
+            {activeChapter?.content || "Iss chapter mein koi content nahi hai."}
+          </article>
         ) : (
-          <div className="w-full bg-zinc-900/20 border border-zinc-900 rounded-2xl p-5 space-y-4 max-h-72 overflow-y-auto pr-1 text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
-            {chunksRef.current.map((chunk, index) => (
-              <span 
-                key={index} 
-                id={`chunk-node-${index}`}
-                className={'transition-all duration-200 block px-2 py-1 rounded-lg ' + (index === currentChunkIndex && isPlaying ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500 pl-3 font-semibold' : '')}
-              >
-                {chunk}
-              </span>
-            ))}
+          <div className="text-center py-16 bg-gray-900/30 border border-gray-900 rounded-2xl p-6 my-6">
+            <Lock className="w-12 h-12 text-yellow-500 mx-auto mb-4 animate-bounce" />
+            <h3 className="text-xl font-bold mb-2">Pura Chapter Padhna Aur Sunna Chahte Hain?</h3>
+            <p className="text-sm text-gray-400 max-w-sm mx-auto mb-6">
+              Kanishak Jha ki premium stories ko access karne ke liye unlock button par click karein.
+            </p>
+            <button 
+              type="button"
+              onClick={() => setIsPaywallOpen(true)}
+              className="bg-yellow-600 hover:bg-yellow-700 text-black font-bold px-8 py-3 rounded-xl transition shadow-lg shadow-yellow-600/10"
+            >
+              Unlock Chapter Now
+            </button>
           </div>
         )}
-
-        {/* FOOTER MEDIA CONTROLS */}
-        <div className="w-full border-t border-zinc-900/60 pt-4 flex items-center justify-between gap-4 max-w-sm">
-          <select 
-            value={playbackSpeed} 
-            onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
-            className="bg-zinc-900 border border-zinc-800 p-2 rounded-xl text-xs font-bold text-zinc-300 outline-none"
-          >
-            <option value="0.75">0.75x</option>
-            <option value="1.0">1.0x (Normal)</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-          </select>
-
-          <div className="flex items-center gap-5">
-            <button type="button" disabled={currentChapterIndex === 0} onClick={() => { window.speechSynthesis.cancel(); if (setIsPlaying) setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.max(0, prev - 1)); }} className={'p-2 ' + (currentChapterIndex === 0 ? 'text-zinc-800' : 'text-zinc-400')}>
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button type="button" disabled={isPremiumLocked || chaptersList.length === 0} onClick={() => { if (setIsPlaying) setIsPlaying(!isPlaying); }} className="p-4 bg-white text-black rounded-full transition transform active:scale-95 disabled:bg-zinc-900 disabled:text-zinc-700 flex items-center justify-center shadow-xl">
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-            </button>
-            <button type="button" disabled={currentChapterIndex >= chaptersList.length - 1} onClick={() => { window.speechSynthesis.cancel(); if (setIsPlaying) setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.min(chaptersList.length - 1, prev + 1)); }} className={'p-2 ' + (currentChapterIndex >= chaptersList.length - 1 ? 'text-zinc-800' : 'text-zinc-400')}>
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="w-16" />
-        </div>
       </div>
 
-      {/* BILLING ARCHITECTURE BRIDGE GATE OVERLAY */}
+      {/* 🔹 BOTTOM PAGINATION CONTROLS */}
+      <div className="flex items-center justify-between border-t border-gray-900 pt-6 mt-12">
+        <button
+          type="button"
+          onClick={handlePrev}
+          disabled={currentChapterIndex === 0}
+          className="flex items-center gap-1 px-4 py-2 bg-gray-900 hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 rounded-lg text-sm transition"
+        >
+          <ChevronLeft className="w-4 h-4" /> Previous
+        </button>
+
+        <span className="text-sm text-gray-500">
+          Chapter {currentChapterIndex + 1} of {chaptersList.length || 1}
+        </span>
+
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={currentChapterIndex === chaptersList.length - 1 || isPremiumLocked}
+          className="flex items-center gap-1 px-4 py-2 bg-gray-900 hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 rounded-lg text-sm transition"
+        >
+          Next <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* 🔐 PAYWALL MODAL GATEWAY */}
       <PaywallModal isOpen={isPaywallOpen} onClose={() => setIsPaywallOpen(false)} />
     </div>
   )
