@@ -1,24 +1,20 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck, Lock, Sparkles } from 'lucide-react'
+import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck } from 'lucide-react'
 
 export function ReaderPage() {
-  const { route, books, chapters, isPlaying, setIsPlaying, navigate, userStatus } = useApp()
+  const { route, books, chapters, isPlaying, setIsPlaying, navigate } = useApp()
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male')
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
   
   const chunksRef = useRef<string[]>([])
-  const bgMusicRef = useRef<HTMLAudioElement | null>(null)
 
   const book = books?.find((b: any) => b.id === route?.bookId)
   const bookChapters = book ? chapters[book.id] || [] : []
   const activeChapter = bookChapters[currentChapterIndex]
   
-  // 🔐 FEATURE 6: Monetization Layer Lock Check Switch Block
-  const isPremiumLocked = activeChapter?.is_locked && userStatus?.plan === 'free'
-
   const textToRead = activeChapter?.content || ""
 
   // Dynamic sentence segmenter array initialization
@@ -46,7 +42,7 @@ export function ReaderPage() {
 
   // Native TTS Execution Core Implementation Block
   useEffect(() => {
-    if (!isPlaying || chunksRef.current.length === 0 || isPremiumLocked) {
+    if (!isPlaying || chunksRef.current.length === 0) {
       window.speechSynthesis.cancel()
       return
     }
@@ -84,7 +80,6 @@ export function ReaderPage() {
     utterance.onend = () => {
       if (currentChunkIndex < chunksRef.current.length - 1) {
         setCurrentChunkIndex(prev => prev + 1)
-        // Auto scroll tracking logic to keep current sentence visible on mobile viewports
         const dynamicNode = document.getElementById(`chunk-node-${currentChunkIndex + 1}`)
         if (dynamicNode) dynamicNode.scrollIntoView({ behavior: 'smooth', block: 'center' })
       } else {
@@ -103,7 +98,7 @@ export function ReaderPage() {
       window.speechSynthesis.speak(utterance)
     }
 
-  }, [isPlaying, currentChunkIndex, voiceGender, playbackSpeed, isPremiumLocked])
+  }, [isPlaying, currentChunkIndex, voiceGender, playbackSpeed, setIsPlaying])
 
   useEffect(() => {
     return () => { window.speechSynthesis.cancel() }
@@ -112,7 +107,7 @@ export function ReaderPage() {
   if (!book) return null
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col relative overflow-x-hidden select-none">
+    <div className="min-h-screen bg-zinc-950 text-white flex flex-col relative overflow-x-hidden">
       {/* HEADER NAV */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-900 justify-between backdrop-blur sticky top-0 bg-zinc-950/80 z-40">
         <button type="button" onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); navigate({ page: 'home' }); }} className="p-2 hover:bg-zinc-900 rounded-full transition">
@@ -141,30 +136,18 @@ export function ReaderPage() {
           </button>
         </div>
 
-        {/* PAYWALL COVER INTERFACE */}
-        {isPremiumLocked ? (
-          <div className="w-full bg-zinc-900/60 border border-red-500/20 rounded-2xl p-8 text-center space-y-4 animate-in fade-in duration-300">
-            <div className="w-10 h-10 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
-              <Lock className="w-4 h-4" />
-            </div>
-            <h3 className="text-sm font-bold">This segment is premium locked 🔐</h3>
-            <p className="text-zinc-400 text-xs max-w-xs mx-auto leading-relaxed">Subscribe to premium tracking packages or consume explicit credits token access arrays to view this manuscript script node.</p>
-            <button type="button" className="px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs rounded-xl shadow shadow-emerald-500/10">Unlock Instantly</button>
-          </div>
-        ) : (
-          /* MANUSCRIPT VIEWER LAYER */
-          <div className="w-full bg-zinc-900/20 border border-zinc-900 rounded-2xl p-5 space-y-4 max-h-72 overflow-y-auto pr-1 text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
-            {chunksRef.current.map((chunk, index) => (
-              <span 
-                key={index} 
-                id={`chunk-node-${index}`}
-                className={'transition-all duration-200 block px-2 py-1 rounded-lg ' + (index === currentChunkIndex && isPlaying ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500 pl-3 font-semibold' : '')}
-              >
-                {chunk}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* MANUSCRIPT VIEWER LAYER */}
+        <div className="w-full bg-zinc-900/20 border border-zinc-900 rounded-2xl p-5 space-y-4 max-h-72 overflow-y-auto pr-1 text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
+          {chunksRef.current.map((chunk, index) => (
+            <span 
+              key={index} 
+              id={`chunk-node-${index}`}
+              className={'transition-all duration-200 block px-2 py-1 rounded-lg ' + (index === currentChunkIndex && isPlaying ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500 pl-3 font-semibold' : '')}
+            >
+              {chunk}
+            </span>
+          ))}
+        </div>
 
         {/* FOOTER MEDIA AND PACING MANAGEMENT CONTROLS */}
         <div className="w-full border-t border-zinc-900/60 pt-4 flex items-center justify-between gap-4 max-w-sm">
@@ -180,17 +163,16 @@ export function ReaderPage() {
           </select>
 
           <div className="flex items-center gap-5">
-            <button type="button" disabled={currentChapterIndex === 0} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.max(0, prev - 1)); }} className={'p-2 ' + (currentChapterIndex === 0 ? 'text-zinc-800' : 'text-zinc-400')}>
+            <button type="button" disabled={currentChapterIndex === 0} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.max(0, prev - 1)); }} className={'p-2 ' + (currentChapterIndex === 0 ? 'text-zinc-700' : 'text-zinc-400')}>
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <button type="button" disabled={isPremiumLocked} onClick={() => setIsPlaying(!isPlaying)} className="p-4 bg-white text-black rounded-full transition transform active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-600 flex items-center justify-center shadow-xl">
-              {isPlaying ? <Pause className="w-5 h-5" fill="black" /> : <Play className="w-5 h-5" fill="black" />}
+            <button type="button" onClick={() => setIsPlaying(!isPlaying)} className="p-4 bg-white text-black rounded-full transition transform active:scale-95 flex items-center justify-center shadow-xl">
+              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
             </button>
-            <button type="button" disabled={currentChapterIndex >= bookChapters.length - 1} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1)); }} className={'p-2 ' + (currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-800' : 'text-zinc-400')}>
+            <button type="button" disabled={currentChapterIndex >= bookChapters.length - 1} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1)); }} className={'p-2 ' + (currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-700' : 'text-zinc-400')}>
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-
           <div className="w-16" />
         </div>
       </div>
