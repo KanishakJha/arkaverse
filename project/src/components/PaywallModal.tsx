@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Sparkles, CheckCircle2, ShieldCheck, CreditCard } from 'lucide-react'
+import { X, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { billingService, BILLING_CONFIG } from '../lib/billing'
 
 interface PaywallModalProps {
@@ -16,7 +16,6 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
     try {
       setLoadingPlan(`${planType}_${provider}`)
       
-      // 🚀 FIXED: Passing explicit provider payload array matching billing.ts structures
       const { url, error } = await billingService.createCheckoutSession({
         priceId: BILLING_CONFIG.plans[planType].id,
         planType,
@@ -43,6 +42,14 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
     }
   }
 
+  // ✅ Clean standard array layout to avoid any dynamic indexing errors
+  const premiumBenefits = [
+    'Unlock all premium locked episodes & scripts',
+    'Super high-quality human-like audio voices',
+    'Ad-free uninterrupted horror ambient tracks',
+    'Unlimited book cover phone uploads allocation'
+  ]
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-3xl p-6 overflow-hidden shadow-2xl space-y-6">
@@ -64,12 +71,7 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
 
         {/* BENEFIT LAYOUT CHECKS */}
         <div className="space-y-2.5 text-xs font-semibold text-zinc-300">
-          {[
-            'Unlock all premium locked episodes & scripts',
-            'Super high-quality human-like audio voices',
-            'Ad-free uninterrupted horror ambient tracks',
-            'Unlimited book cover phone uploads allocation'
-          ].map((text, idx) => (
+          {premiumBenefits.map((text, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>{text}</span>
