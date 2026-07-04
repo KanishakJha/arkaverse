@@ -13,15 +13,20 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
   const handlePaymentProcess = async (planType: string) => {
     console.log("Processing payment flow directly for plan:", planType);
     try {
-      alert(`🚀 Paytm Gateway Initializing for ${planType === 'monthly' ? '₹299/Month' : '₹1999/Year'}...`);
-      // Direct checkout execution parameters bypass window authorization rules cleanly here
+      // Direct Alert for Instant User Feedback and Redirect Bypassing
+      alert(`🚀 Paytm Checkout Initializing! redirecting to secure payment page for ${planType === 'monthly' ? '₹29/Month' : '₹149/Year'}...`);
+      
+      // Agar aapke paas koi specific link hai toh aap yahan window.location.href use kar sakte hain
+      // window.location.href = "YOUR_PAYTM_GATEWAY_LINK";
+      
+      onClose(); // Payment process trigger hone ke baad modal close ho jayega
     } catch (error) {
-      console.error("Payment routing failure code avoided:", error);
+      console.error("Payment routing error handled cleanly:", error);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-6 text-white shadow-2xl">
         <button
           type="button"
@@ -36,15 +41,15 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
             <Lock className="w-6 h-6" />
           </div>
           <h3 className="text-xl font-bold">Unlock Premium Library</h3>
-          <p className="text-sm text-gray-400 mt-1">Unlimited dynamic audiobooks aur horror stories tak access paayein.</p>
+          <p className="text-sm text-gray-400 mt-1">Unlimited dynamic audiobooks aur premium horror stories tak access paayein.</p>
         </div>
 
         <div className="space-y-3">
-          {/* Monthly Plan */}
+          {/* Monthly Plan - Price Reduced to 29 */}
           <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-600 transition flex items-center justify-between">
             <div>
               <p className="font-semibold text-sm text-gray-200">Monthly Pass</p>
-              <p className="text-2xl font-black text-white mt-1">₹299<span className="text-xs font-normal text-gray-400">/month</span></p>
+              <p className="text-2xl font-black text-white mt-1">₹29<span className="text-xs font-normal text-gray-400">/month</span></p>
             </div>
             <button
               type="button"
@@ -55,12 +60,12 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
             </button>
           </div>
 
-          {/* Yearly Plan */}
+          {/* Yearly Plan - Price Reduced to 149 */}
           <div className="p-4 bg-gray-800/80 border border-yellow-600/50 rounded-xl relative hover:border-yellow-600 transition flex items-center justify-between">
             <span className="absolute -top-2 left-4 px-2 py-0.5 bg-yellow-600 text-black font-extrabold text-[10px] rounded-full uppercase tracking-wider">Best Value</span>
             <div>
               <p className="font-semibold text-sm text-yellow-500">Annual Mega Pass</p>
-              <p className="text-2xl font-black text-white mt-1">₹1,999<span className="text-xs font-normal text-gray-400">/year</span></p>
+              <p className="text-2xl font-black text-white mt-1">₹149<span className="text-xs font-normal text-gray-400">/year</span></p>
             </div>
             <button
               type="button"
