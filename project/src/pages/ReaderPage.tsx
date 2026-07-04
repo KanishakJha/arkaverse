@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck } from 'lucide-react'
+import { ChevronLeft, ChevronRight, User, UserCheck, Play, Pause, Lock } from 'lucide-react'
+import { PaywallModal } from '../components/PaywallModal' // 🚀 Import checkout sheet modal
 
 export function ReaderPage() {
   const { route, books, chapters, isPlaying, setIsPlaying, navigate } = useApp()
@@ -9,17 +10,23 @@ export function ReaderPage() {
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
   
+  // 🔐 MONETIZATION MODAL TRIGGER STATES Matrix Setup
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false)
+  
   const chunksRef = useRef<string[]>([])
 
   const book = books?.find((b: any) => b.id === route?.bookId)
   const bookChapters = book ? chapters[book.id] || [] : []
   const activeChapter = bookChapters[currentChapterIndex]
+
+  // 🔐 FEATURE 6: Read real-time locked status parameter on individual row item
+  const isPremiumLocked = activeChapter?.is_locked === true 
   
   const textToRead = activeChapter?.content || ""
 
-  // Dynamic sentence segmenter array initialization
+  // Dynamic chunk parsing array logic
   useEffect(() => {
-    if (textToRead) {
+    if (textToRead && !isPremiumLocked) {
       const sentences = textToRead.match(/[^.!?]+[.!?]+(\s|$)|[^।!?]+[।!?]+(\s|$)/g) || [textToRead]
       const chunks: string[] = []
       let currentChunk = ""
@@ -37,12 +44,16 @@ export function ReaderPage() {
       chunksRef.current = chunks
       setCurrentChunkIndex(0)
       window.speechSynthesis.cancel()
+    } else {
+      chunksRef.current = []
+      setCurrentChunkIndex(0)
+      window.speechSynthesis.cancel()
     }
-  }, [textToRead])
+  }, [textToRead, isPremiumLocked])
 
-  // Native TTS Execution Core Implementation Block
+  // Native TTS Execution Core Block
   useEffect(() => {
-    if (!isPlaying || chunksRef.current.length === 0) {
+    if (!isPlaying || chunksRef.current.length === 0 || isPremiumLocked) {
       window.speechSynthesis.cancel()
       return
     }
@@ -71,11 +82,8 @@ export function ReaderPage() {
 
     assignVoiceSignature()
 
-    if (voiceGender === 'male') {
-      utterance.pitch = 0.82
-    } else {
-      utterance.pitch = 1.04
-    }
+    if (voiceGender === 'male') utterance.pitch = 0.82
+    else utterance.pitch = 1.04
 
     utterance.onend = () => {
       if (currentChunkIndex < chunksRef.current.length - 1) {
@@ -88,17 +96,9 @@ export function ReaderPage() {
     }
 
     utterance.onerror = () => setIsPlaying(false)
+    window.speechSynthesis.speak(utterance)
 
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        assignVoiceSignature()
-        window.speechSynthesis.speak(utterance)
-      }
-    } else {
-      window.speechSynthesis.speak(utterance)
-    }
-
-  }, [isPlaying, currentChunkIndex, voiceGender, playbackSpeed, setIsPlaying])
+  }, [isPlaying, currentChunkIndex, voiceGender, playbackSpeed, isPremiumLocked, setIsPlaying])
 
   useEffect(() => {
     return () => { window.speechSynthesis.cancel() }
@@ -108,6 +108,7 @@ export function ReaderPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col relative overflow-x-hidden">
+      
       {/* HEADER NAV */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-900 justify-between backdrop-blur sticky top-0 bg-zinc-950/80 z-40">
         <button type="button" onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); navigate({ page: 'home' }); }} className="p-2 hover:bg-zinc-900 rounded-full transition">
@@ -120,7 +121,7 @@ export function ReaderPage() {
         <div className="w-10" />
       </div>
 
-      {/* RENDER CORE BODY DISPLAY PANEL */}
+      {/* RENDER CORE BODY PANEL */}
       <div className="flex-1 flex flex-col items-center p-6 space-y-6 max-w-xl mx-auto w-full">
         <div className="w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border border-zinc-800">
           <img src={book.cover_url} alt="" className="w-full h-full object-cover" />
@@ -136,20 +137,37 @@ export function ReaderPage() {
           </button>
         </div>
 
-        {/* MANUSCRIPT VIEWER LAYER */}
-        <div className="w-full bg-zinc-900/20 border border-zinc-900 rounded-2xl p-5 space-y-4 max-h-72 overflow-y-auto pr-1 text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
-          {chunksRef.current.map((chunk, index) => (
-            <span 
-              key={index} 
-              id={`chunk-node-${index}`}
-              className={'transition-all duration-200 block px-2 py-1 rounded-lg ' + (index === currentChunkIndex && isPlaying ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500 pl-3 font-semibold' : '')}
+        {/* CONDITION-BOUND MANUSCRIPT VIEWER LAYER */}
+        {isPremiumLocked ? (
+          <div className="w-full bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-8 text-center space-y-4 animate-in fade-in duration-300">
+            <div className="w-10 h-10 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+              <Lock className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-black text-white">Premium Segment Locked 🔐</h3>
+            <p className="text-zinc-400 text-xs max-w-xs mx-auto leading-relaxed">This script array contains premium node access identifiers. Activate premium to read or listen.</p>
+            <button 
+              type="button" 
+              onClick={() => setIsPaywallOpen(true)}
+              className="px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-black text-xs rounded-xl shadow-lg transition"
             >
-              {chunk}
-            </span>
-          ))}
-        </div>
+              Unlock Premium Content
+            </button>
+          </div>
+        ) : (
+          <div className="w-full bg-zinc-900/20 border border-zinc-900 rounded-2xl p-5 space-y-4 max-h-72 overflow-y-auto pr-1 text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
+            {chunksRef.current.map((chunk, index) => (
+              <span 
+                key={index} 
+                id={`chunk-node-${index}`}
+                className={'transition-all duration-200 block px-2 py-1 rounded-lg ' + (index === currentChunkIndex && isPlaying ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500 pl-3 font-semibold' : '')}
+              >
+                {chunk}
+              </span>
+            ))}
+          </div>
+        )}
 
-        {/* FOOTER MEDIA AND PACING MANAGEMENT CONTROLS */}
+        {/* FOOTER MEDIA CONTROLS */}
         <div className="w-full border-t border-zinc-900/60 pt-4 flex items-center justify-between gap-4 max-w-sm">
           <select 
             value={playbackSpeed} 
@@ -163,19 +181,22 @@ export function ReaderPage() {
           </select>
 
           <div className="flex items-center gap-5">
-            <button type="button" disabled={currentChapterIndex === 0} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.max(0, prev - 1)); }} className={'p-2 ' + (currentChapterIndex === 0 ? 'text-zinc-700' : 'text-zinc-400')}>
+            <button type="button" disabled={currentChapterIndex === 0} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.max(0, prev - 1)); }} className={'p-2 ' + (currentChapterIndex === 0 ? 'text-zinc-800' : 'text-zinc-400')}>
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <button type="button" onClick={() => setIsPlaying(!isPlaying)} className="p-4 bg-white text-black rounded-full transition transform active:scale-95 flex items-center justify-center shadow-xl">
+            <button type="button" disabled={isPremiumLocked} onClick={() => setIsPlaying(!isPlaying)} className="p-4 bg-white text-black rounded-full transition transform active:scale-95 disabled:bg-zinc-900 disabled:text-zinc-700 flex items-center justify-center shadow-xl">
               {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
             </button>
-            <button type="button" disabled={currentChapterIndex >= bookChapters.length - 1} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1)); }} className={'p-2 ' + (currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-700' : 'text-zinc-400')}>
+            <button type="button" disabled={currentChapterIndex >= bookChapters.length - 1} onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setCurrentChunkIndex(0); setCurrentChapterIndex(prev => Math.min(bookChapters.length - 1, prev + 1)); }} className={'p-2 ' + (currentChapterIndex >= bookChapters.length - 1 ? 'text-zinc-800' : 'text-zinc-400')}>
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
           <div className="w-16" />
         </div>
       </div>
+
+      {/* 🚀 BILLING ARCHITECTURE BRIDGE GATE OVERLAY SHEET VIEW */}
+      <PaywallModal isOpen={isPaywallOpen} onClose={() => setIsPaywallOpen(false)} />
     </div>
   )
 }
