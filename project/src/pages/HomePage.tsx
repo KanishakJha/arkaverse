@@ -15,9 +15,6 @@ import {
   Clock 
 } from 'lucide-react'
 
-// ✅ NEW IMPORT ADDED HERE
-import PremiumAudioPlayer from '../components/audio/PremiumAudioPlayer'
-
 const GENRE_ICONS: Record<string, any> = {
   All: Compass,
   Epic: Shield,
@@ -46,14 +43,6 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6">
       
-      {/* ✅ PREMIUM AUDIO PLAYER ADDED HERE (At the top) */}
-      <div className="mb-8 flex justify-center">
-        <PremiumAudioPlayer 
-          audioSrc="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" 
-          title="Test Audiobook" 
-        />
-      </div>
-
       {/* Title Header Section */}
       <header className="mb-6">
         <h1 
