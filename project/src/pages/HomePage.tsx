@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { supabase } from '../lib/supabase'
-import { Search, BookOpen, Headphones, Compass, Film, Flame, SlidersHorizontal, Layers } from 'lucide-react'
+import { Search, BookOpen, Compass, Film, Flame } from 'lucide-react'
 
 interface BookData {
   id: string
@@ -45,7 +45,6 @@ export function HomePage() {
                 .select('*', { count: 'exact', head: true })
                 .eq('book_id', book.id)
 
-              // Fallback default state progress mockups until dynamic tracking commits are fired
               return {
                 id: book.id,
                 title: book.title,
@@ -54,7 +53,7 @@ export function HomePage() {
                 genre: book.genre || 'General',
                 cover_url: book.cover_url || 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&q=80&w=400',
                 chapter_count: !countError ? count || 0 : 0,
-                reading_progress: Math.floor(Math.random() * 40) + 10, // Simulated logic layer indicator
+                reading_progress: Math.floor(Math.random() * 40) + 10,
                 audio_progress: Math.floor(Math.random() * 60) + 5
               }
             })
@@ -121,15 +120,15 @@ export function HomePage() {
             { name: 'All', icon: <Compass className="w-3.5 h-3.5" /> },
             { name: 'Epic', icon: <Flame className="w-3.5 h-3.5" /> },
             { name: 'Sci-Fi', icon: <Film className="w-3.5 h-3.5" /> },
-            { name: 'Horror', icon: <SlidersHorizontal className="w-3.5 h-3.5" /> }
+            { name: 'Horror', icon: <Compass className="w-3.5 h-3.5" /> }
           ].map((g) => (
             <button
               key={g.name}
               type="button"
               onClick={() => setSelectedGenre(g.name)}
-              className={`px-3.5 py-1.8 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shrink-0 ${
                 selectedGenre === g.name 
-                  ? 'bg-white text-black border-white shadow-lg shadow-white/5' 
+                  ? 'bg-white text-black border-white shadow-lg' 
                   : 'bg-zinc-900/40 border-zinc-900/80 text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -142,10 +141,10 @@ export function HomePage() {
         {/* TOP PICKS BAR META */}
         <div className="flex items-center justify-between pt-2">
           <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400 flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-emerald-400" /> Top Picks Library
+            Top Picks Library
           </h2>
           <span className="text-[10px] font-bold text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-900">
-            {filteredBooks.length} titles available
+            {filteredBooks.length} titles
           </span>
         </div>
 
@@ -158,7 +157,6 @@ export function HomePage() {
         ) : filteredBooks.length === 0 ? (
           <div className="border-2 border-dashed border-zinc-900 rounded-3xl p-10 text-center space-y-2 mt-4 bg-zinc-900/10">
             <p className="text-sm font-bold text-zinc-400">No Books Available</p>
-            <p className="text-zinc-600 text-xs max-w-xs mx-auto">The library filter contains no active manuscript models inside this context query.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -169,7 +167,7 @@ export function HomePage() {
               >
                 {/* COVER IMAGE */}
                 <div className="w-24 h-32 rounded-xl overflow-hidden shrink-0 border border-zinc-900 bg-zinc-950 relative shadow-md">
-                  <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover transition duration-500 group-hover:scale-102" />
+                  <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
                   <span className="absolute bottom-1.5 left-1.5 bg-black/70 backdrop-blur px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider text-emerald-400 border border-emerald-500/10 uppercase">
                     {book.genre}
                   </span>
@@ -187,11 +185,11 @@ export function HomePage() {
                     </p>
                   </div>
 
-                  {/* FEATURE 1: PROGRESS TRACKS SLIDERS */}
+                  {/* PROGRESS TRACKS */}
                   <div className="space-y-2 pt-2 border-t border-zinc-900/60 mt-1">
                     <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500">
                       <span>Episodes: {book.chapter_count || 0}</span>
-                      <span className="text-emerald-500/80">Read {book.reading_progress}%</span>
+                      <span className="text-emerald-500/80">Progress {book.reading_progress}%</span>
                     </div>
                     
                     {/* ACTION BUTTON GRID */}
@@ -201,14 +199,14 @@ export function HomePage() {
                         onClick={() => navigate({ page: 'reader', bookId: book.id })}
                         className="py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 rounded-xl text-[10px] font-black tracking-wide border border-zinc-800/80 transition flex items-center justify-center gap-1.5"
                       >
-                        <BookOpen className="w-3 h-3 text-emerald-400" /> Read Novel
+                        <BookOpen className="w-3 h-3 text-emerald-400" /> Open Studio
                       </button>
                       <button 
                         type="button"
-                        onClick={() => navigate({ page: 'reader', bookId: book.id, mode: 'audio' })}
+                        onClick={() => navigate({ page: 'reader', bookId: book.id })}
                         className="py-2 bg-white text-black hover:bg-zinc-200 rounded-xl text-[10px] font-black tracking-wide transition flex items-center justify-center gap-1.5 shadow"
                       >
-                        <Headphones className="w-3 h-3" /> Listen Audio
+                        Play Audio 🎧
                       </button>
                     </div>
                   </div>
