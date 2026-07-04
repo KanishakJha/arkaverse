@@ -114,4 +114,32 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
       <div className="flex items-center gap-3">
         {!isPlaying ? (
           <button
-            onClick
+            type="button"
+            onClick={handlePlay}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition"
+          >
+            <Play className="w-4 h-4 fill-current" /> Listen
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handlePause}
+            className="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm font-medium transition"
+          >
+            <Pause className="w-4 h-4 fill-current" /> Pause
+          </button>
+        )}
+
+        {(isPlaying || isPaused) && (
+          <button
+            type="button"
+            onClick={handleStop}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition"
+          >
+            <Square className="w-4 h-4 fill-current" /> Stop
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
