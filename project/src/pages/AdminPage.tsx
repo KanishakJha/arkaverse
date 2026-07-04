@@ -44,8 +44,17 @@ export function AdminPage() {
         .select('*')
         .eq('archived', false)
       if (!error && data) {
-        setExistingBooks(data)
-        if (data.length > 0) setSelectedBookId(data[0].id)
+        // Explicit cast validation to bypass the any vs never type check issue
+        const formattedBooks: BookData[] = data.map((b: any) => ({
+          id: b.id,
+          title: b.title,
+          author: b.author || '',
+          description: b.description || '',
+          genre: b.genre || '',
+          cover_url: b.cover_url || ''
+        }))
+        setExistingBooks(formattedBooks)
+        if (formattedBooks.length > 0) setSelectedBookId(formattedBooks[0].id)
       }
     }
     loadBooks()
@@ -63,7 +72,7 @@ export function AdminPage() {
         .order('chapter_order', { ascending: true })
 
       if (!error && data) {
-        setChaptersList(data.map(ch => ({
+        setChaptersList(data.map((ch: any) => ({
           id: ch.id,
           title: ch.title,
           content: ch.content || '',
@@ -86,7 +95,7 @@ export function AdminPage() {
 
   const handleChapterChange = (index: number, field: keyof ChapterInput, value: any) => {
     const updated = [...chaptersList]
-    updated[index][field] = value
+    updated[index] = { ...updated[index], [field]: value }
     setChaptersList(updated)
   }
 
@@ -221,7 +230,7 @@ export function AdminPage() {
               <div className="flex-1">
                 <label className="text-xs text-zinc-400 block mb-1 font-semibold uppercase">Select Book to Edit</label>
                 <select value={selectedBookId} onChange={(e) => setSelectedBookId(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none">
-                  {existingBooks.map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
+                  {existingBooks.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
                 </select>
               </div>
               <button type="button" onClick={handleArchiveBook} className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl flex items-center gap-1.5 text-xs font-bold transition">
@@ -231,7 +240,7 @@ export function AdminPage() {
           </div>
         )}
 
-        {/* DYNAMIC CHAPTER MANAGEMENT INJECTION ENGINE */}
+        {/* DYNAMIC CHAPTER MANAGEMENT */}
         <div className="border-t border-zinc-800 pt-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-emerald-400 uppercase tracking-wider">Book Episodes List Bundle</h2>
@@ -242,11 +251,10 @@ export function AdminPage() {
 
           <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
             {chaptersList.map((ch, index) => (
-              <div key={index} className="bg-zinc-900/90 border border-zinc-800/80 p-4 rounded-xl space-y-3 relative group animate-in fade-in">
+              <div key={index} className="bg-zinc-900/90 border border-zinc-800/80 p-4 rounded-xl space-y-3 relative group">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Chapter Index #{index + 1}</span>
                   <div className="flex items-center gap-2">
-                    {/* 🔐 MONETIZATION: Paywall lock status selector toggler switches */}
                     <button 
                       type="button" 
                       onClick={() => handleChapterChange(index, 'is_locked', !ch.is_locked)}
