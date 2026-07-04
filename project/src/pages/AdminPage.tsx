@@ -23,12 +23,13 @@ export function AdminPage() {
   const [isNewBookMode, setIsNewBookMode] = useState(true)
   const [existingBooks, setExistingBooks] = useState<BookData[]>([])
   const [selectedBookId, setSelectedBookId] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   // Book Meta States
   const [bookTitle, setBookTitle] = useState('')
   const [author, setAuthor] = useState('Kanishak Jha')
   const [synopsis, setSynopsis] = useState('')
-  const [genre, setGenre] = useState('Horror')
+  const [genre, setGenre] = useState('Romance') // Default set to new extended genre
   const [coverUrl, setCoverUrl] = useState('')
 
   // Chapters Grid State
@@ -36,253 +37,355 @@ export function AdminPage() {
     { title: 'एपिसोड एक: ', content: '', is_locked: false }
   ])
 
-  // 🔄 Fetch all active books from Supabase for Management Mode
+  // 🏷️ MULTI-GENRE ARRAYS LIST MATCHING HOMEPAGE CONFIGS
+  const availableGenres = [
+    'Romance',
+    'Romantic',
+    'Emotional',
+    'Murder Mystery',
+    'Crime',
+    'Action',
+    'Adventure',
+    'Horror',
+    'Epic',
+    'Sci-Fi',
+    'Thriller',
+    'Drama'
+  ]
+
+  // Fetch Existing Books Database Matrix
   useEffect(() => {
     async function loadBooks() {
       const { data, error } = await supabase
         .from('books')
         .select('*')
         .eq('archived', false)
-      if (!error && data) {
-        // Explicit cast validation to bypass the any vs never type check issue
-        const formattedBooks: BookData[] = data.map((b: any) => ({
-          id: b.id,
-          title: b.title,
-          author: b.author || '',
-          description: b.description || '',
-          genre: b.genre || '',
-          cover_url: b.cover_url || ''
-        }))
-        setExistingBooks(formattedBooks)
-        if (formattedBooks.length > 0) setSelectedBookId(formattedBooks[0].id)
-      }
+      if (!error && data) setExistingBooks(data)
     }
     loadBooks()
-  }, [])
+  }, [isNewBookMode])
 
-  // 🔄 Fetch existing chapters when a book is selected for editing
+  // Fetch Individual Chapters when editing a book
   useEffect(() => {
     if (isNewBookMode || !selectedBookId) return
+    async function loadBookData() {
+      const targetBook = existingBooks.find(b => b.id === selectedBookId)
+      if (targetBook) {
+        setBookTitle(targetBook.title)
+        setAuthor(targetBook.author || 'Kanishak Jha')
+        setSynopsis(targetBook.description || '')
+        setGenre(targetBook.genre || 'Romance')
+        setCoverUrl(targetBook.cover_url || '')
+      }
 
-    async function loadChapters() {
-      const { data, error } = await supabase
+      const { data: chData, error } = await supabase
         .from('chapters')
         .select('*')
         .eq('book_id', selectedBookId)
         .order('chapter_order', { ascending: true })
 
-      if (!error && data) {
-        setChaptersList(data.map((ch: any) => ({
-          id: ch.id,
-          title: ch.title,
-          content: ch.content || '',
-          is_locked: ch.is_locked || false
+      if (!error && chData) {
+        setChaptersList(chData.map(c => ({
+          id: c.id,
+          title: c.title,
+          content: c.content || '',
+          is_locked: c.is_locked || false
         })))
       }
     }
-    loadChapters()
-  }, [selectedBookId, isNewBookMode])
+    loadBookData()
+  }, [selectedBookId, isNewBookMode, existingBooks])
 
-  const handleAddChapterRow = () => {
-    const nextIndex = chaptersList.length + 1
-    setChaptersList([...chaptersList, { title: 'एपिसोड ' + nextIndex + ': ', content: '', is_locked: false }])
-  }
-
-  const handleRemoveChapterRow = (index: number) => {
-    if (chaptersList.length === 1) return
-    setChaptersList(chaptersList.filter((_, i) => i !== index))
-  }
-
-  const handleChapterChange = (index: number, field: keyof ChapterInput, value: any) => {
-    const updated = [...chaptersList]
-    updated[index] = { ...updated[index], [field]: value }
-    setChaptersList(updated)
-  }
-
-  // 👥 FEATURE 4: Duplicate Individual Chapter Local Handler
-  const handleDuplicateChapter = (index: number) => {
-    const target = chaptersList[index]
-    const updated = [...chaptersList]
-    updated.splice(index + 1, 0, {
-      title: `${target.title} (Copy)`,
-      content: target.content,
-      is_locked: target.is_locked
-    })
-    setChaptersList(updated)
-  }
-
-  // 💾 CORE TRANSACTION: Save / Update / Bulk Upsert Engine
-  const handleSaveChanges = async () => {
-    if (isNewBookMode && !bookTitle.trim()) {
-      alert("Please enter a Book Title!")
+  // Save Transaction Handler Function
+  const handleSaveConfiguration = async () => {
+    if (!bookTitle.trim()) {
+      alert('Please fill out the series title parameter.')
       return
     }
 
     try {
-      let targetBookId = selectedBookId
+      setIsLoading(false)
+      let currentBookId = selectedBookId
 
       if (isNewBookMode) {
-        // 1. Insert New Book Entity
+        // Insert new structural manuscript row metadata object maps
         const { data: newBook, error: bookError } = await supabase
           .from('books')
-          .insert([{ title: bookTitle, author, description: synopsis, genre, cover_url: coverUrl }])
+          .insert([{
+            title: bookTitle,
+            author: author,
+            description: synopsis,
+            genre: genre,
+            cover_url: coverUrl
+          }])
           .select()
           .single()
 
         if (bookError) throw bookError
-        targetBookId = newBook.id
+        currentBookId = newBook.id
       } else {
-        // 2. Clear out older chapters schema nodes for full atomic transaction overwrite
-        await supabase.from('chapters').delete().eq('book_id', targetBookId)
+        // Update existing manuscript elements parameters
+        const { error: updateError } = await supabase
+          .from('books')
+          .update({
+            title: bookTitle,
+            author: author,
+            description: synopsis,
+            genre: genre,
+            cover_url: coverUrl
+          })
+          .eq('id', currentBookId)
+
+        if (updateError) throw updateError
       }
 
-      // 3. Bulk insert the updated sequence array into Supabase
-      if (targetBookId && chaptersList.length > 0) {
+      // Sync and inject episode list bundles sequence inside individual records row checkpoints
+      if (currentBookId) {
+        // Delete older chapters mapped inside current scope if editing to maintain sync
+        if (!isNewBookMode) {
+          await supabase.from('chapters').delete().eq('book_id', currentBookId)
+        }
+
         const formattedChapters = chaptersList.map((ch, idx) => ({
-          book_id: targetBookId,
-          title: ch.title || 'Chapter ' + (idx + 1),
-          content: ch.content || '',
-          chapter_order: idx + 1,
-          is_locked: ch.is_locked
+          book_id: currentBookId,
+          title: ch.title || `Episode #${idx + 1}`,
+          content: ch.content,
+          is_locked: ch.is_locked,
+          chapter_order: idx + 1
         }))
 
-        const { error: chapterError } = await supabase
+        const { error: chInsertError } = await supabase
           .from('chapters')
           .insert(formattedChapters)
 
-        if (chapterError) throw chapterError
+        if (chInsertError) throw chInsertError
       }
 
-      alert("🎉 Data successfully saved and synchronized with Supabase Database!")
-      window.location.href = "/"
-    } catch (error: any) {
-      console.error(error)
-      alert("Error saving transaction: " + error.message)
+      alert('🚀 Custom Series and Chapters Schema Matrix Synchronized Safely!')
+      resetControlForm()
+
+    } catch (err: any) {
+      alert(`Error saving transaction: ${err.message || 'Database pipeline fail.'}`)
     }
   }
 
-  // 🗑️ FEATURE 5: Archive / Delete entire book completely
+  const resetControlForm = () => {
+    setBookTitle('')
+    setSynopsis('')
+    setCoverUrl('')
+    setGenre('Romance')
+    setChaptersList([{ title: 'एपिसोड एक: ', content: '', is_locked: false }])
+    setIsNewBookMode(true)
+    setSelectedBookId('')
+  }
+
   const handleArchiveBook = async () => {
-    if (isNewBookMode || !selectedBookId) return
-    if (!confirm("Are you sure you want to archive this series?")) return
-
-    const { error } = await supabase
-      .from('books')
-      .update({ archived: true })
-      .eq('id', selectedBookId)
-
-    if (!error) {
-      alert("Book series moved to archive shelf successfully!")
-      window.location.href = "/"
+    if (!selectedBookId) return
+    if (confirm('Archive this bundle script manuscript?')) {
+      await supabase.from('books').update({ archived: true }).eq('id', selectedBookId)
+      alert('Manuscript Archived.')
+      resetControlForm()
     }
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-6">
-      {/* HEADER */}
-      <div className="flex items-center gap-4 mb-6 border-b border-zinc-800 pb-4">
-        <button type="button" onClick={() => { window.location.href = "/"; }} className="p-2 hover:bg-zinc-900 rounded-full">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-bold">Studio Creator Panel</h1>
-      </div>
-
-      {/* MODE TABS */}
-      <div className="max-w-2xl mx-auto mb-6 flex bg-zinc-900 p-1 rounded-xl border border-zinc-800">
-        <button type="button" onClick={() => setIsNewBookMode(true)} className={'flex-1 py-2.5 text-xs font-bold rounded-lg transition ' + (isNewBookMode ? 'bg-white text-black shadow' : 'text-zinc-400')}>
-          Create New Book Series
-        </button>
-        <button type="button" onClick={() => setIsNewBookMode(false)} className={'flex-1 py-2.5 text-xs font-bold rounded-lg transition ' + (!isNewBookMode ? 'bg-white text-black shadow' : 'text-zinc-400')}>
-          Manage / Edit Existing Book
-        </button>
-      </div>
-
-      <div className="max-w-2xl mx-auto space-y-6 bg-zinc-900/40 border border-zinc-800 p-6 rounded-2xl shadow-xl">
-        {isNewBookMode ? (
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs text-zinc-400 block mb-1 font-semibold uppercase">New Book Title *</label>
-              <input type="text" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="e.g. PRALAY" className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none" />
-            </div>
-            
-            <ImageUploader onUploadSuccess={(url) => setCoverUrl(url)} defaultUrl={coverUrl} />
-
-            <div>
-              <label className="text-xs text-zinc-400 block mb-1 font-semibold uppercase">Narrator / Author *</label>
-              <input type="text" value={author} onChange={(e) => setAuthor(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none" />
-            </div>
-            <div>
-              <label className="text-xs text-zinc-400 block mb-1 font-semibold uppercase">Series Synopsis *</label>
-              <textarea value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm h-20 resize-none text-zinc-200 focus:outline-none" />
-            </div>
-            <div>
-              <label className="text-xs text-zinc-400 block mb-1 font-semibold uppercase">Genre *</label>
-              <select value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none">
-                <option value="Horror">Horror</option>
-                <option value="Sci-Fi">Sci-Fi</option>
-                <option value="Epic">Epic</option>
-              </select>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-end gap-3">
-              <div className="flex-1">
-                <label className="text-xs text-zinc-400 block mb-1 font-semibold uppercase">Select Book to Edit</label>
-                <select value={selectedBookId} onChange={(e) => setSelectedBookId(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none">
-                  {existingBooks.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
-                </select>
-              </div>
-              <button type="button" onClick={handleArchiveBook} className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl flex items-center gap-1.5 text-xs font-bold transition">
-                <Archive className="w-4 h-4" /> Archive Series
+    <div className="min-h-screen bg-zinc-950 text-white p-4 pb-24">
+      <div className="max-w-md mx-auto space-y-6">
+        
+        {/* HEADER AREA */}
+        <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
+          <div className="flex items-center gap-2">
+            {!isNewBookMode && (
+              <button type="button" onClick={resetControlForm} className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-400">
+                <ChevronLeft className="w-4 h-4" />
               </button>
-            </div>
-          </div>
-        )}
-
-        {/* DYNAMIC CHAPTER MANAGEMENT */}
-        <div className="border-t border-zinc-800 pt-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-emerald-400 uppercase tracking-wider">Book Episodes List Bundle</h2>
-            <button type="button" onClick={handleAddChapterRow} className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-lg flex items-center gap-1 transition">
-              <Plus className="w-3.5 h-3.5" /> Add Next Chapter
-            </button>
+            )}
+            <h1 className="text-sm font-black uppercase tracking-wider text-zinc-200">
+              {isNewBookMode ? 'Studio Core Engine ⚙️' : 'Modify Manuscript Schema'}
+            </h1>
           </div>
 
-          <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-            {chaptersList.map((ch, index) => (
-              <div key={index} className="bg-zinc-900/90 border border-zinc-800/80 p-4 rounded-xl space-y-3 relative group">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Chapter Index #{index + 1}</span>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      type="button" 
-                      onClick={() => handleChapterChange(index, 'is_locked', !ch.is_locked)}
-                      className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider bg-zinc-950 px-2 py-1 rounded border border-zinc-800"
-                    >
-                      {ch.is_locked ? <ToggleRight className="w-4 h-4 text-emerald-400" /> : <ToggleLeft className="w-4 h-4 text-zinc-600" />}
-                      Premium Lock
-                    </button>
-                    <button type="button" onClick={() => handleDuplicateChapter(index)} className="p-1 text-zinc-500 hover:text-white transition">
-                      <Copy className="w-3.5 h-3.5" />
-                    </button>
-                    {chaptersList.length > 1 && (
-                      <button type="button" onClick={() => handleRemoveChapterRow(index)} className="p-1 text-zinc-500 hover:text-red-400 transition">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <input type="text" value={ch.title} placeholder="Chapter Title" onChange={(e) => handleChapterChange(index, 'title', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500" />
-                <textarea value={ch.content} placeholder="Paste your script text body layout parameters..." onChange={(e) => handleChapterChange(index, 'content', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 h-24 resize-none focus:outline-none focus:border-emerald-500" />
-              </div>
-            ))}
+          {isNewBookMode && existingBooks.length > 0 && (
+            <select
+              value={selectedBookId}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedBookId(e.target.value)
+                  setIsNewBookMode(false)
+                }
+              }}
+              className="bg-zinc-900 border border-zinc-800 text-[11px] font-bold p-1.5 rounded-xl outline-none text-zinc-300 max-w-[160px]"
+            >
+              <option value="">Edit Live Book...</option>
+              {existingBooks.map(b => (
+                <option key={b.id} value={b.id}>{b.title}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* BUNDLE METADATA FORM MATRIX INPUT FIELDS */}
+        <div className="space-y-4 bg-zinc-900/30 border border-zinc-900 p-5 rounded-2xl">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">New Book Title *</label>
+            <input 
+              type="text" 
+              value={bookTitle}
+              onChange={(e) => setBookTitle(e.target.value)}
+              placeholder="e.g. PRALAY" 
+              className="w-full bg-zinc-900 border border-zinc-900 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-800 transition font-semibold"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">Creator Signature</label>
+            <input 
+              type="text" 
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-900 rounded-xl px-3 py-2 text-xs text-zinc-400 focus:outline-none transition font-semibold"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">Series Synopsis *</label>
+            <textarea 
+              rows={3}
+              value={synopsis}
+              onChange={(e) => setSynopsis(e.target.value)}
+              placeholder="Write the master plot synopsis summary matrix configuration..."
+              className="w-full bg-zinc-900 border border-zinc-900 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-800 transition leading-relaxed font-medium"
+            />
+          </div>
+
+          {/* 🚀 FIXED UPGRADED MULTI-GENRE CHANNELS SELECTION DROP-DOWN */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">Genre Parameters *</label>
+            <select
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-900 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-800 transition font-bold outline-none"
+            >
+              {availableGenres.map((g) => (
+                <option key={g} value={g} className="bg-zinc-950 font-semibold">{g}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* PHONE UPLOAD CANVAS OPTIMIZATION ENGINE MODULE */}
+          <div className="space-y-1 pt-1">
+            <label className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">Book Cover Asset *</label>
+            <ImageUploader onUploadComplete={(url) => setCoverUrl(url)} initialUrl={coverUrl} />
           </div>
         </div>
 
-        <button type="button" onClick={handleSaveChanges} className="w-full mt-2 bg-white text-black hover:bg-zinc-200 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition shadow-lg">
-          <Save className="w-4 h-4" /> Save Series Schema Configuration
-        </button>
+        {/* BOOK EPISODES LIST BUNDLE REPEATER FIELD SECTION */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Book Episodes List Bundle</h2>
+            <button
+              type="button"
+              onClick={() => setChaptersList([...chaptersList, { title: `एपिसोड ${chaptersList.length + 1}: `, content: '', is_locked: false }])}
+              className="px-3 py-1.5 bg-emerald-500 text-black font-black text-[10px] rounded-xl hover:bg-emerald-400 transition flex items-center gap-1 shadow shadow-emerald-500/10"
+            >
+              <Plus className="w-3 h-3" /> Add Next Chapter
+            </button>
+          </div>
+
+          {chaptersList.map((chapter, index) => (
+            <div key={index} className="bg-zinc-900/20 border border-zinc-900 rounded-2xl p-4 space-y-3 relative group">
+              <div className="flex justify-between items-center gap-4">
+                <input 
+                  type="text"
+                  value={chapter.title}
+                  onChange={(e) => {
+                    const next = [...chaptersList]
+                    next[index].title = e.target.value
+                    setChaptersList(next)
+                  }}
+                  placeholder="Chapter Heading Track Name..."
+                  className="bg-transparent text-xs font-black text-white outline-none border-b border-transparent focus:border-zinc-800 pb-0.5 flex-1 uppercase tracking-wide"
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = [...chaptersList]
+                      next[index].is_locked = !next[index].is_locked
+                      setChaptersList(next)
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-black tracking-wider uppercase text-zinc-500 hover:text-white transition"
+                  >
+                    {chapter.is_locked ? (
+                      <span className="text-emerald-400 flex items-center gap-1"><ToggleRight className="w-4 h-4" /> Premium Lock</span>
+                    ) : (
+                      <span className="text-zinc-600 flex items-center gap-1"><ToggleLeft className="w-4 h-4" /> Free Layer</span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = [...chaptersList]
+                      const target = { ...next[index], title: next[index].title + ' (Copy)' }
+                      next.splice(index + 1, 0, target)
+                      setChaptersList(next)
+                    }}
+                    title="Duplicate Episode Parameters"
+                    className="p-1 hover:bg-zinc-900 border border-transparent hover:border-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+
+                  {chaptersList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setChaptersList(chaptersList.filter((_, i) => i !== index))}
+                      className="p-1 text-zinc-600 hover:text-red-400 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <textarea
+                rows={4}
+                value={chapter.content}
+                onChange={(e) => {
+                  const next = [...chaptersList]
+                  next[index].content = e.target.value
+                  setChaptersList(next)
+                }}
+                placeholder="Paste your episodic script text content array block layer inside this context framework box node..."
+                className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:border-zinc-900 transition leading-relaxed font-medium"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* TERMINAL COMMIT CONTROLS ACTION BUTTONS */}
+        <div className="grid grid-cols-1 gap-2 pt-4">
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={handleSaveConfiguration}
+            className="w-full py-3 bg-white text-black font-black text-xs rounded-xl shadow-xl hover:bg-zinc-200 transition flex items-center justify-center gap-2 tracking-wide"
+          >
+            <Save className="w-4 h-4" /> Save Series Schema Configuration
+          </button>
+
+          {!isNewBookMode && (
+            <button
+              type="button"
+              onClick={handleArchiveBook}
+              className="w-full py-2.5 bg-zinc-900/40 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 border border-zinc-900 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+            >
+              <Archive className="w-3.5 h-3.5" /> Archive Current Book
+            </button>
+          )}
+        </div>
+
       </div>
     </div>
   )
