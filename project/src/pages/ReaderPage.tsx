@@ -3,6 +3,8 @@ import { useApp } from '../contexts/AppContext'
 import { supabase } from '../lib/supabase'
 import { ChevronLeft, ChevronRight, User, UserCheck, Play, Pause, Lock } from 'lucide-react'
 import { PaywallModal } from '../components/PaywallModal'
+// 1. Naya player import yahan sabse upar add ho gaya
+import { AudioStoryPlayer } from '../components/AudioStoryPlayer'
 
 interface ChapterData {
   id: string
@@ -12,6 +14,9 @@ interface ChapterData {
   chapter_order: number
 }
 
+// ==========================================
+// 1. PEHLA COMPONENT: ReaderPage (Fixed Closing Brackets)
+// ==========================================
 export function ReaderPage() {
   const { route, books, isPlaying, setIsPlaying, navigate } = useApp()
   const [chaptersList, setChaptersList] = useState<ChapterData[]>([])
@@ -34,9 +39,26 @@ export function ReaderPage() {
   const isPremiumLocked = activeChapter?.is_locked === true 
   const textToRead = activeChapter?.content || ""
 
-Ab isko kaha add karna hai import { AudioStoryPlayer } from '../components/AudioStoryPlayer';
+  // YAHAN AAPKA PURANA CODE ADHURA THA.
+  // Abhi ke liye maine yahan basic UI return kar diya hai taaki build error na aaye.
+  return (
+    <div className="p-6 text-white bg-gray-950 min-h-screen">
+      <h2 className="text-xl font-bold mb-4">Reader Main Page</h2>
+      {activeChapter ? (
+        <ChapterReaderPage chapterData={activeChapter} />
+      ) : (
+        <p className="text-gray-400">Loading chapters or no chapter selected...</p>
+      )}
+      
+      <PaywallModal isOpen={isPaywallOpen} onClose={() => setIsPaywallOpen(false)} />
+    </div>
+  )
+}
 
-export function ChapterReaderPage({ chapterData }) {
+// ==========================================
+// 2. DUSRA COMPONENT: ChapterReaderPage 
+// ==========================================
+export function ChapterReaderPage({ chapterData }: { chapterData: ChapterData }) {
   return (
     <div className="max-w-3xl mx-auto p-6 bg-gray-950 text-white min-h-screen">
       {/* Chapter Metadata */}
@@ -54,5 +76,5 @@ export function ChapterReaderPage({ chapterData }) {
         {chapterData.content}
       </article>
     </div>
-  );
+  )
 }
