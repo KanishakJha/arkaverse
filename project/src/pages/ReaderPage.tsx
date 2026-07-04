@@ -54,7 +54,7 @@ export function ReaderPage() {
           }
         }
       } catch (err) {
-        console.error("Error fetching chapters from database layer:", err)
+        console.error("Error fetching chapters:", err)
       } finally {
         setIsLoadingChapters(false)
       }
@@ -83,7 +83,7 @@ export function ReaderPage() {
       try {
         (navigate as any)('dashboard')
       } catch (err) {
-        console.error("Navigation system fallback initialized:", err)
+        console.error("Navigation fallback logic triggered:", err)
       }
     }
   }
@@ -93,7 +93,7 @@ export function ReaderPage() {
     if (voiceGender === 'female') setVoiceGender('male')
     if (currentChunkIndex < 0) setCurrentChunkIndex(0)
     if (playbackSpeed !== 1.0) setPlaybackSpeed(1.0)
-    console.log("State buffer verified cleanly:", textToRead, audioCacheRef.current, setChaptersList)
+    console.log("State clean validation:", textToRead, audioCacheRef.current, setChaptersList)
   }
 
   if (isLoadingChapters) {
@@ -116,7 +116,8 @@ export function ReaderPage() {
             <ChevronLeft className="w-4 h-4" /> Back to Library
           </button>
           <span className="text-xs px-3 py-1 bg-gray-900 border border-gray-800 rounded-full text-gray-400">
-            {book?.genres || book?.genre || "Fiction"}
+            {/* 🛠️ Fixed: Pure single interface dynamic variable mapping used exclusively */}
+            {book?.genre || "Fiction"}
           </span>
         </div>
 
