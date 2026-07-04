@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Sparkles, CheckCircle2, CreditCard, ShieldCheck } from 'lucide-react'
+import { X, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { billingService, BILLING_CONFIG } from '../lib/billing'
 
 interface PaywallModalProps {
@@ -25,7 +25,6 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
         return
       }
 
-      // Mock redirect sequence bypass for sandbox deployment presentation
       alert(`🚀 Redirecting to Stripe Gateway secure payment terminal for ${BILLING_CONFIG.plans[planType].name}...`)
       window.open(url, '_blank')
       onClose()
@@ -88,7 +87,7 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
             </button>
           </div>
 
-          {/* Yearly Sub Card (Best Value Offer) */}
+          {/* Yearly Sub Card */}
           <div className="border-2 border-emerald-500/30 bg-zinc-950/80 p-4 rounded-2xl flex items-center justify-between gap-4 relative">
             <span className="absolute -top-2.5 right-4 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow">
               Save 45% • Best Offer
@@ -101,7 +100,7 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
               type="button"
               disabled={loadingPlan !== null}
               onClick={() => handleSubscribe('yearly', BILLING_CONFIG.plans.yearly.id)}
-              className="px-4 py-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs rounded-xl shadow-lg transition transform active:scale-95"
+              className="px-4 py-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs rounded-xl shadow-lg transition"
             >
               {loadingPlan === 'yearly' ? 'Linking...' : 'Subscribe Now'}
             </button>
