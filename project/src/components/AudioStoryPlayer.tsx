@@ -15,74 +15,82 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       setSynth(window.speechSynthesis);
-      window.speechSynthesis.getVoices();
-      
+      // Browser speech framework optimization
+      const triggerVoices = () => {
+        if (window.speechSynthesis) window.speechSynthesis.getVoices();
+      };
+      triggerVoices();
       if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = () => {
-          window.speechSynthesis.getVoices();
-        };
+        window.speechSynthesis.onvoiceschanged = triggerVoices;
       }
     }
-    
     return () => {
       if (window.speechSynthesis) window.speechSynthesis.cancel();
     };
   }, []);
 
   const handlePlay = () => {
-    if (!synth || !storyText.trim()) return;
+    const speechEngine = synth || (typeof window !== 'undefined' ? window.speechSynthesis : null);
+    if (!speechEngine || !storyText.trim()) return;
 
     if (isPaused) {
-      synth.resume();
+      speechEngine.resume();
       setIsPlaying(true);
       setIsPaused(false);
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(storyText);
-    utterance.lang = 'hi-IN';
+    // Direct initialization bypass loop configuration
+    speechEngine.cancel();
 
-    const voices = synth.getVoices();
-    let selectedVoice = null;
-    
-    if (gender === 'male') {
-      selectedVoice = voices.find(v => v.lang === 'hi-IN' && (v.name.toLowerCase().includes('male') || v.name.includes('Google')));
-    } else {
-      selectedVoice = voices.find(v => v.lang === 'hi-IN' && (v.name.toLowerCase().includes('female') || !v.name.includes('Google')));
-    }
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(storyText);
+      utterance.lang = 'hi-IN';
 
-    if (selectedVoice) utterance.voice = selectedVoice;
+      const voices = speechEngine.getVoices();
+      let selectedVoice = null;
+      
+      if (gender === 'male') {
+        selectedVoice = voices.find(v => v.lang === 'hi-IN' && (v.name.toLowerCase().includes('male') || v.name.includes('Google')));
+      } else {
+        selectedVoice = voices.find(v => v.lang === 'hi-IN' && (v.name.toLowerCase().includes('female') || !v.name.includes('Google')));
+      }
 
-    utterance.rate = 0.95;
-    utterance.pitch = gender === 'male' ? 0.9 : 1.0;
+      if (selectedVoice) utterance.voice = selectedVoice;
 
-    utterance.onend = () => {
-      setIsPlaying(false);
+      utterance.rate = 0.95;
+      utterance.pitch = gender === 'male' ? 0.9 : 1.0;
+
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+
+      utterance.onerror = (e) => {
+        console.error("Speech trigger warning:", e);
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+
+      speechEngine.speak(utterance);
+      setIsPlaying(true);
       setIsPaused(false);
-    };
-
-    utterance.onerror = () => {
-      setIsPlaying(false);
-      setIsPaused(false);
-    };
-
-    synth.cancel();
-    synth.speak(utterance);
-    setIsPlaying(true);
-    setIsPaused(false);
+    }, 50);
   };
 
   const handlePause = () => {
-    if (synth && isPlaying) {
-      synth.pause();
+    const speechEngine = synth || (typeof window !== 'undefined' ? window.speechSynthesis : null);
+    if (speechEngine && isPlaying) {
+      speechEngine.pause();
       setIsPlaying(false);
       setIsPaused(true);
     }
   };
 
   const handleStop = () => {
-    if (synth) {
-      synth.cancel();
+    const speechEngine = synth || (typeof window !== 'undefined' ? window.speechSynthesis : null);
+    if (speechEngine) {
+      speechEngine.cancel();
       setIsPlaying(false);
       setIsPaused(false);
     }
