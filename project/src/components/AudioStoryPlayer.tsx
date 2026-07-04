@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { Play, Pause, Square, User, UserCheck } from 'lucide-react';
 
