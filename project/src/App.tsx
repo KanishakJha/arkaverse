@@ -3,7 +3,7 @@ import { AppProvider, useApp } from './contexts/AppContext'
 import { HomePage } from './pages/HomePage'
 import { ReaderPage } from './pages/ReaderPage'
 import { AdminPage } from './pages/AdminPage'
-import { ShieldAlert, KeyRound } from 'lucide-react'
+import { KeyRound } from 'lucide-react'
 
 function AppContent() {
   const { route } = useApp()
@@ -13,7 +13,7 @@ function AppContent() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  // Your requested cryptographic pattern string match
+  // Your cryptographic pattern secret key string
   const MASTER_SECRET_HASH = "K9#vP2!wLq8*Zm"
 
   const handleAdminVerify = (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ function AppContent() {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 bg-red-500/10 blur-xl rounded-full" />
             
             <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto">
-              <ShieldAlert className="w-5 h-5" />
+              <KeyRound className="w-5 h-5" />
             </div>
 
             <div className="space-y-1">
@@ -60,7 +60,7 @@ function AppContent() {
               </div>
 
               {errorMessage && (
-                <p className="text-[10px] font-black text-red-400 bg-red-500/5 py-1.5 rounded-lg border border-red-500/10 animate-shake">
+                <p className="text-[10px] font-black text-red-400 bg-red-500/5 py-1.5 rounded-lg border border-red-500/10">
                   {errorMessage}
                 </p>
               )}
@@ -75,7 +75,7 @@ function AppContent() {
 
             <button 
               type="button"
-              onClick={() => window.location.href = "/"}
+              onClick={() => { window.location.href = "/"; }}
               className="text-[11px] font-bold text-zinc-500 hover:text-zinc-300 transition block mx-auto pt-2"
             >
               Cancel & Return Home
