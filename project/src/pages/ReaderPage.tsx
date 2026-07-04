@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { Play, Pause, ChevronLeft, ChevronRight, User, UserCheck } from 'lucide-react'
+// ✅ 1. NEW IMPORT ADDED (Sirf ek line add ki)
+import { TTSReader } from '../components/TTSReader'
 
 export function ReaderPage() {
   const { route, books, chapters, fetchChapters, isPlaying, setIsPlaying, navigate } = useApp()
@@ -63,7 +65,7 @@ export function ReaderPage() {
     }
   }, [isPlaying])
 
-  // TTS PLAYBACK INTERACTIVE HANDLER
+  // TTS PLAYBACK INTERACTIVE HANDLER (Aapka existing TTS bilkul same chalega)
   useEffect(() => {
     if (!isPlaying || chunksRef.current.length === 0) {
       window.speechSynthesis.cancel()
@@ -146,6 +148,9 @@ export function ReaderPage() {
         <div className="w-10" />
       </div>
 
+      {/* ✅ 2. TTS READER ADDED HERE (Is block ko aapke header aur content ke beech mein add kiya) */}
+      <TTSReader text={activeChapter?.content || ""} />
+
       <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
         <div className="relative w-64 h-64 rounded-full overflow-hidden shadow-2xl border-4 border-zinc-800">
           <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
@@ -182,4 +187,4 @@ export function ReaderPage() {
       </div>
     </div>
   )
-}
+          }
