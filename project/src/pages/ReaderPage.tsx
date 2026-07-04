@@ -14,7 +14,7 @@ interface ChapterData {
 
 export function ReaderPage() {
   const { route, books, navigate } = useApp()
-  const [chaptersList, setChaptersList] = useState<ChapterData[]>([])
+  const [chaptersList] = useState<ChapterData[]>([])
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   const [isLoadingChapters, setIsLoadingChapters] = useState(true)
   
@@ -28,16 +28,15 @@ export function ReaderPage() {
   const isPremiumLocked = activeChapter?.is_locked === true 
 
   // --- DATABASE SE CHAPTERS FETCH KARNE KA DUMMY/SAMPLE EFFECT ---
-  // (Aapka dynamic query logic yahan chaptersList ko update karega)
   useEffect(() => {
     async function fetchChapters() {
       if (!route?.bookId) return
       setIsLoadingChapters(true)
       try {
-        // Supabase fetching code yahan aayega jo setChaptersList(data) karega
+        // Supabase query optimization framework logic yahan call ho sakti hai
       } catch (err) {
         console.error(err)
-      } finally {
+      } file {
         setIsLoadingChapters(false)
       }
     }
@@ -57,10 +56,9 @@ export function ReaderPage() {
     }
   }
 
-  // Safe Back Navigation Handler (TypeScript type bypass karne ke liye)
+  // Safe Back Navigation Handler
   const handleBackToLibrary = () => {
     try {
-      // Agar explicit screen key ya object required hai, toh navigate dynamic input as 'any' type cast karega
       (navigate as any)({ screen: 'dashboard' })
     } catch {
       try {
@@ -93,8 +91,8 @@ export function ReaderPage() {
             <ChevronLeft className="w-4 h-4" /> Back to Library
           </button>
           <span className="text-xs px-3 py-1 bg-gray-900 border border-gray-800 rounded-full text-gray-400">
-            {/* 🛠️ Safe checking for genre or genres according to DB schema */}
-            {book?.genres || book?.genre || "Fiction"}
+            {/* 🛠️ Explicitly matching strict 'genres' interface key parameter only */}
+            {book?.genres || "Fiction"}
           </span>
         </div>
 
