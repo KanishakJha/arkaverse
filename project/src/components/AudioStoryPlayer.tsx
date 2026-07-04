@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Play, Pause, Square, User, UserCheck } from 'lucide-react';
 
 interface AudioPlayerProps {
-  storyText: string; // Jo kahani play karni hai wo props se aayegi
+  storyText: string;
 }
 
 export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
@@ -10,14 +10,11 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [synth, setSynth] = useState<SpeechSynthesis | null>(null);
-  const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
 
-  // 🚀 Fixed useEffect: Chrome aur Safari me voices background me properly load ho jayengi
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       setSynth(window.speechSynthesis);
       
-      // Initial trigger voices fetch karne ke liye
       window.speechSynthesis.getVoices();
       
       if (window.speechSynthesis.onvoiceschanged !== undefined) {
@@ -27,7 +24,6 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
       }
     }
     
-    // Cleanup: Agar user page change kare ya tab close kare toh audio turant stop ho jaye
     return () => {
       if (window.speechSynthesis) window.speechSynthesis.cancel();
     };
@@ -36,7 +32,6 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
   const handlePlay = () => {
     if (!synth || !storyText.trim()) return;
 
-    // Agar pehle se paused hai toh resume karo
     if (isPaused) {
       synth.resume();
       setIsPlaying(true);
@@ -44,17 +39,13 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
       return;
     }
 
-    // Naya audio request create karo
     const utterance = new SpeechSynthesisUtterance(storyText);
-    utterance.lang = 'hi-IN'; // Hindi text reading ke liye
+    utterance.lang = 'hi-IN';
 
-    // Browser ki available voices me se select karo
     const voices = synth.getVoices();
     
-    // Gender ke hisab se voice filter
     let selectedVoice = null;
     if (gender === 'male') {
-      // Chrome/Edge mein Google ki deep voice hoti hai male ke liye
       selectedVoice = voices.find(v => v.lang === 'hi-IN' && (v.name.toLowerCase().includes('male') || v.name.includes('Google')));
     } else {
       selectedVoice = voices.find(v => v.lang === 'hi-IN' && (v.name.toLowerCase().includes('female') || !v.name.includes('Google')));
@@ -62,11 +53,9 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
 
     if (selectedVoice) utterance.voice = selectedVoice;
 
-    // Premium/Storytelling feel ke liye pitch aur speed tuning
-    utterance.rate = 0.95; // Kahani clear samajh aaye isliye thoda sa slow (1.0 default se)
-    utterance.pitch = gender === 'male' ? 0.9 : 1.0; // Male voice ko thoda aur heavy tone dene ke liye
+    utterance.rate = 0.95;
+    utterance.pitch = gender === 'male' ? 0.9 : 1.0;
 
-    // Event listeners taaki buttons automatically update ho sakein
     utterance.onend = () => {
       setIsPlaying(false);
       setIsPaused(false);
@@ -77,9 +66,7 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
       setIsPaused(false);
     };
 
-    // Purana chal raha ho toh cancel karke naya shuru karo
     synth.cancel();
-    setCurrentUtterance(utterance);
     synth.speak(utterance);
     setIsPlaying(true);
     setIsPaused(false);
@@ -106,7 +93,6 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-sm font-semibold tracking-wide text-gray-400">LISTEN STORY (AI AUDIO)</h4>
         
-        {/* Voice Selectors */}
         <div className="flex gap-2 bg-gray-800 p-1 rounded-lg text-xs">
           <button
             type="button"
@@ -125,33 +111,7 @@ export function AudioStoryPlayer({ storyText }: AudioPlayerProps) {
         </div>
       </div>
 
-      {/* Audio Controls Grid */}
       <div className="flex items-center gap-3">
         {!isPlaying ? (
           <button
-            onClick={handlePlay}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition"
-          >
-            <Play className="w-4 h-4 fill-current" /> Listen
-          </button>
-        ) : (
-          <button
-            onClick={handlePause}
-            className="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm font-medium transition"
-          >
-            <Pause className="w-4 h-4 fill-current" /> Pause
-          </button>
-        )}
-
-        {(isPlaying || isPaused) && (
-          <button
-            onClick={handleStop}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition"
-          >
-            <Square className="w-4 h-4 fill-current" /> Stop
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
+            onClick
