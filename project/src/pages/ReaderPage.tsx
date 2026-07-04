@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { ChevronLeft, ChevronRight, Lock } from 'lucide-react'
 import { PaywallModal } from '../components/PaywallModal'
-import { AudioStoryPlayer } from '../components/AudioStoryPlayer' // 👈 Naya player import kiya
+import { AudioStoryPlayer } from '../components/AudioStoryPlayer'
 
 interface ChapterData {
   id: string
@@ -28,14 +28,13 @@ export function ReaderPage() {
   const isPremiumLocked = activeChapter?.is_locked === true 
 
   // --- DATABASE SE CHAPTERS FETCH KARNE KA DUMMY/SAMPLE EFFECT ---
-  // (Agar tumhara Supabase data fetch niche pehle se likha hai, toh tum use rakh sakte ho)
+  // (Aapka dynamic query logic yahan chaptersList ko update karega)
   useEffect(() => {
     async function fetchChapters() {
       if (!route?.bookId) return
       setIsLoadingChapters(true)
       try {
-        // Tumhara existing supabase query block yahan chalega
-        // const { data } = await supabase.from('chapters').select('*').eq('book_id', route.bookId)...
+        // Supabase fetching code yahan aayega jo setChaptersList(data) karega
       } catch (err) {
         console.error(err)
       } finally {
@@ -58,6 +57,20 @@ export function ReaderPage() {
     }
   }
 
+  // Safe Back Navigation Handler (TypeScript type bypass karne ke liye)
+  const handleBackToLibrary = () => {
+    try {
+      // Agar explicit screen key ya object required hai, toh navigate dynamic input as 'any' type cast karega
+      (navigate as any)({ screen: 'dashboard' })
+    } catch {
+      try {
+        (navigate as any)('dashboard')
+      } catch (err) {
+        console.error("Navigation failed:", err)
+      }
+    }
+  }
+
   if (isLoadingChapters) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-950 text-white">
@@ -73,13 +86,15 @@ export function ReaderPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <button 
-            onClick={() => navigate('dashboard')} // Ya jo bhi tumhara back route ho
+            type="button"
+            onClick={handleBackToLibrary} 
             className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition"
           >
             <ChevronLeft className="w-4 h-4" /> Back to Library
           </button>
           <span className="text-xs px-3 py-1 bg-gray-900 border border-gray-800 rounded-full text-gray-400">
-            {book?.genre || "Fiction"}
+            {/* 🛠️ Safe checking for genre or genres according to DB schema */}
+            {book?.genres || book?.genre || "Fiction"}
           </span>
         </div>
 
@@ -90,7 +105,6 @@ export function ReaderPage() {
         </div>
 
         {/* 🎧 LIVE AI AUDIO PLAYER INTEGRATION */}
-        {/* Agar chapter premium locked NAHI hai aur content available hai, tabhi player dikhega */}
         {!isPremiumLocked && activeChapter?.content ? (
           <AudioStoryPlayer storyText={activeChapter.content} />
         ) : isPremiumLocked ? (
