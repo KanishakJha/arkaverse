@@ -6,16 +6,17 @@ import { AdminPage } from './pages/AdminPage'
 
 function AppContent() {
   const { route } = useApp()
-  // Admin Authorization Framework validation parameter bypass mode
+  // Admin Studio Framework Validation standard setup bypass
   const [isAdminAuthenticated] = useState(true)
 
+  // 🎛️ Clean Router Matrix: No external type-checking conflicts
   if (route?.page === 'admin') {
     if (!isAdminAuthenticated) {
       return (
         <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white p-4">
-          <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-sm text-center space-y-4">
-            <h1 className="text-lg font-bold">Access Denied</h1>
-            <p className="text-zinc-400 text-xs leading-relaxed">Unauthorized access signature detected.</p>
+          <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-sm text-center">
+            <h1 className="text-lg font-bold text-red-400">Access Denied</h1>
+            <p className="text-zinc-400 text-xs mt-2 leading-relaxed">Unauthorized access signature detected.</p>
           </div>
         </div>
       )
