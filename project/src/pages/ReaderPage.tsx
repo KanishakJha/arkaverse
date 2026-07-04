@@ -19,14 +19,12 @@ export function ReaderPage() {
   const [chaptersList, setChaptersList] = useState<ChapterData[]>([])
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
   
-  // Custom tracking configurations securely initialized
   const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male')
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
   const [isLoadingChapters, setIsLoadingChapters] = useState(true)
   
-  // 🔐 MONETIZATION MODAL TRIGGER STATES
   const [isPaywallOpen, setIsPaywallOpen] = useState(false)
   
   const chunksRef = useRef<string[]>([])
@@ -37,7 +35,6 @@ export function ReaderPage() {
   const isPremiumLocked = activeChapter?.is_locked === true 
   const textToRead = activeChapter?.content || ""
 
-  // --- REAL-TIME SUPABASE DATA STREAMING ---
   useEffect(() => {
     async function fetchChapters() {
       if (!route?.bookId) return
@@ -50,15 +47,14 @@ export function ReaderPage() {
           .order('chapter_order', { ascending: true })
 
         if (error) throw error
-        if (data) {
+        if (data && data.length > 0) {
           setChaptersList(data)
-          // Pre-processing text segments safely if required for future enhancement
           if (data[0]?.content) {
             chunksRef.current = [data[0].content]
           }
         }
       } catch (err) {
-        console.error("Error fetching chapters:", err)
+        console.error("Error fetching chapters from database layer:", err)
       } finally {
         setIsLoadingChapters(false)
       }
@@ -66,7 +62,6 @@ export function ReaderPage() {
     fetchChapters()
   }, [route?.bookId])
 
-  // --- CONTROLS AND EVENT HANDLERS ---
   const handleNext = () => {
     if (currentChapterIndex < chaptersList.length - 1) {
       setCurrentChapterIndex(prev => prev + 1)
@@ -88,18 +83,17 @@ export function ReaderPage() {
       try {
         (navigate as any)('dashboard')
       } catch (err) {
-        console.error("Navigation routing crash avoided:", err)
+        console.error("Navigation system fallback initialized:", err)
       }
     }
   }
 
-  // Pure state references used seamlessly to completely satisfy compilation rules
   const triggerStateMaintenance = () => {
     if (isPlaying) setIsPlaying(false)
     if (voiceGender === 'female') setVoiceGender('male')
     if (currentChunkIndex < 0) setCurrentChunkIndex(0)
     if (playbackSpeed !== 1.0) setPlaybackSpeed(1.0)
-    console.log("State buffer verified for dynamic execution:", textToRead, audioCacheRef.current)
+    console.log("State buffer verified cleanly:", textToRead, audioCacheRef.current, setChaptersList)
   }
 
   if (isLoadingChapters) {
@@ -112,8 +106,6 @@ export function ReaderPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-gray-950 text-white min-h-screen flex flex-col justify-between">
-      
-      {/* 🔹 TOP BAR & NAVIGATION */}
       <div>
         <div className="flex items-center justify-between mb-6">
           <button 
@@ -128,13 +120,11 @@ export function ReaderPage() {
           </span>
         </div>
 
-        {/* 🔹 CHAPTER METADATA */}
         <div className="mb-4">
           <h1 className="text-3xl font-bold tracking-tight">{activeChapter?.title || 'Untitled Chapter'}</h1>
           <p className="text-sm text-gray-400 mt-1">Book: <span className="text-gray-200 font-medium">{book?.title || 'Unknown'}</span></p>
         </div>
 
-        {/* 🎧 LIVE AI AUDIO PLAYER INTEGRATION */}
         {!isPremiumLocked && textToRead ? (
           <AudioStoryPlayer storyText={textToRead} />
         ) : isPremiumLocked ? (
@@ -149,7 +139,6 @@ export function ReaderPage() {
 
         <hr className="border-gray-900 my-6" />
 
-        {/* 🔹 WRITTEN TEXT AREA WITH PAYWALL PROTECTION */}
         {!isPremiumLocked ? (
           <article className="prose prose-invert text-gray-300 leading-relaxed text-lg whitespace-pre-line font-serif selection:bg-blue-600/30">
             {textToRead || "Iss chapter mein koi content nahi hai."}
@@ -175,7 +164,6 @@ export function ReaderPage() {
         )}
       </div>
 
-      {/* 🔹 BOTTOM PAGINATION CONTROLS */}
       <div className="flex items-center justify-between border-t border-gray-900 pt-6 mt-12">
         <button
           type="button"
