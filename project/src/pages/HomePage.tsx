@@ -15,6 +15,9 @@ import {
   Clock 
 } from 'lucide-react'
 
+// ✅ NEW IMPORT ADDED HERE
+import PremiumAudioPlayer from '../components/audio/PremiumAudioPlayer'
+
 const GENRE_ICONS: Record<string, any> = {
   All: Compass,
   Epic: Shield,
@@ -33,7 +36,6 @@ export function HomePage() {
 
   const genres = ['All', 'Epic', 'Sci-Fi', 'Horror', 'Mystery', 'Mythology', 'Thriller', 'Cyberpunk']
 
-  // Filter books based on search input and selected genre filter row
   const filteredBooks = books.filter(book => {
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           book.author.toLowerCase().includes(searchQuery.toLowerCase())
@@ -43,7 +45,16 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6">
-      {/* Title Header Section / Shortcut navigation trigger to bypass SPA 404s */}
+      
+      {/* ✅ PREMIUM AUDIO PLAYER ADDED HERE (At the top) */}
+      <div className="mb-8 flex justify-center">
+        <PremiumAudioPlayer 
+          audioSrc="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" 
+          title="Test Audiobook" 
+        />
+      </div>
+
+      {/* Title Header Section */}
       <header className="mb-6">
         <h1 
           onClick={() => navigate({ page: 'admin' })}
