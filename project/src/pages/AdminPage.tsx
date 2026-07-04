@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Trash2, Save, ChevronLeft } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { ImageUploader } from '../components/ImageUploader' // 🚀 Import Uploader Layer
+import { supabase } from '../lib/supabase' // 🌟 FIXED: Imported Supabase instance
+import { ImageUploader } from '../components/ImageUploader' // 🌟 FIXED: Imported Uploader Component
 
 interface ChapterInput {
   title: string
@@ -14,8 +14,6 @@ export function AdminPage() {
   const [author, setAuthor] = useState('Kanishak Jha')
   const [synopsis, setSynopsis] = useState('')
   const [genre, setGenre] = useState('Horror')
-  
-  // 🌟 Dynamic cover state controlled by Phone Image Upload layer
   const [coverUrl, setCoverUrl] = useState('')
 
   const [chaptersList, setChaptersList] = useState<ChapterInput[]>([
@@ -117,7 +115,7 @@ export function AdminPage() {
               <input type="text" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="e.g. PRALAY" className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-zinc-200 focus:outline-none" />
             </div>
             
-            {/* 🚀 SMART PHONE IMAGE UPLOADER PORT COUPLING INSULATION */}
+            {/* PHONE IMAGE UPLOADER MOUNT */}
             <ImageUploader onUploadSuccess={(url) => setCoverUrl(url)} defaultUrl={coverUrl} />
 
             <div>
