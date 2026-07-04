@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react'
+import { X, Sparkles, CheckCircle2, ShieldCheck, CreditCard } from 'lucide-react'
 import { billingService, BILLING_CONFIG } from '../lib/billing'
 
 interface PaywallModalProps {
@@ -12,12 +12,15 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
 
   if (!isOpen) return null
 
-  const handleSubscribe = async (planType: 'monthly' | 'yearly', priceId: string) => {
+  const handleSubscribe = async (planType: 'monthly' | 'yearly', provider: 'stripe' | 'paytm') => {
     try {
-      setLoadingPlan(planType)
+      setLoadingPlan(`${planType}_${provider}`)
+      
+      // 🚀 FIXED: Passing explicit provider payload array matching billing.ts structures
       const { url, error } = await billingService.createCheckoutSession({
-        priceId,
-        planType
+        priceId: BILLING_CONFIG.plans[planType].id,
+        planType,
+        provider
       })
 
       if (error) {
@@ -25,11 +28,16 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
         return
       }
 
-      alert(`🚀 Redirecting to Stripe Gateway secure payment terminal for ${BILLING_CONFIG.plans[planType].name}...`)
+      if (provider === 'paytm') {
+        alert(`📱 Opening Paytm Secure Intent Terminal (VPA: ${BILLING_CONFIG.merchantUpi})...`)
+      } else {
+        alert(`🚀 Redirecting to Stripe Gateway secure payment terminal for ${BILLING_CONFIG.plans[planType].name}...`)
+      }
+
       window.open(url, '_blank')
       onClose()
     } catch (err: any) {
-      alert(err.message)
+      alert(err.message || 'Payment processing gateway trigger error.')
     } finally {
       setLoadingPlan(null)
     }
@@ -69,42 +77,68 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
           ))}
         </div>
 
-        {/* PRICING OPTIONS LIST */}
-        <div className="space-y-3">
+        {/* PRICING OPTIONS LIST WITH DUAL METHOD TRIGGERS */}
+        <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+          
           {/* Monthly Sub Card */}
-          <div className="border border-zinc-800 bg-zinc-950/40 p-4 rounded-2xl flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold text-zinc-400">{BILLING_CONFIG.plans.monthly.name}</p>
-              <p className="text-lg font-black text-white">₹{BILLING_CONFIG.plans.monthly.amount}<span className="text-[10px] text-zinc-500 font-bold"> / month</span></p>
+          <div className="border border-zinc-800 bg-zinc-950/40 p-4 rounded-2xl space-y-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-xs font-bold text-zinc-400">{BILLING_CONFIG.plans.monthly.name}</p>
+                <p className="text-base font-black text-white">₹{BILLING_CONFIG.plans.monthly.amount}<span className="text-[10px] text-zinc-500 font-bold"> / month</span></p>
+              </div>
             </div>
-            <button
-              type="button"
-              disabled={loadingPlan !== null}
-              onClick={() => handleSubscribe('monthly', BILLING_CONFIG.plans.monthly.id)}
-              className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-white font-bold text-xs rounded-xl hover:bg-zinc-800 transition shadow-md"
-            >
-              {loadingPlan === 'monthly' ? 'Linking...' : 'Choose Plan'}
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={loadingPlan !== null}
+                onClick={() => handleSubscribe('monthly', 'paytm')}
+                className="py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-xl transition shadow shadow-blue-900"
+              >
+                {loadingPlan === 'monthly_paytm' ? 'Linking...' : 'Pay via Paytm'}
+              </button>
+              <button
+                type="button"
+                disabled={loadingPlan !== null}
+                onClick={() => handleSubscribe('monthly', 'stripe')}
+                className="py-2 bg-zinc-800 border border-zinc-700 text-zinc-200 font-bold text-[11px] rounded-xl hover:bg-zinc-700 transition"
+              >
+                {loadingPlan === 'monthly_stripe' ? 'Linking...' : 'Cards / Bank'}
+              </button>
+            </div>
           </div>
 
           {/* Yearly Sub Card */}
-          <div className="border-2 border-emerald-500/30 bg-zinc-950/80 p-4 rounded-2xl flex items-center justify-between gap-4 relative">
+          <div className="border-2 border-emerald-500/30 bg-zinc-950/80 p-4 rounded-2xl space-y-3 relative">
             <span className="absolute -top-2.5 right-4 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow">
               Save 45% • Best Offer
             </span>
-            <div>
-              <p className="text-xs font-bold text-zinc-200">{BILLING_CONFIG.plans.yearly.name}</p>
-              <p className="text-lg font-black text-white">₹{BILLING_CONFIG.plans.yearly.amount}<span className="text-[10px] text-zinc-400 font-bold"> / year</span></p>
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-xs font-bold text-zinc-200">{BILLING_CONFIG.plans.yearly.name}</p>
+                <p className="text-base font-black text-white">₹{BILLING_CONFIG.plans.yearly.amount}<span className="text-[10px] text-zinc-400 font-bold"> / year</span></p>
+              </div>
             </div>
-            <button
-              type="button"
-              disabled={loadingPlan !== null}
-              onClick={() => handleSubscribe('yearly', BILLING_CONFIG.plans.yearly.id)}
-              className="px-4 py-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs rounded-xl shadow-lg transition"
-            >
-              {loadingPlan === 'yearly' ? 'Linking...' : 'Subscribe Now'}
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={loadingPlan !== null}
+                onClick={() => handleSubscribe('yearly', 'paytm')}
+                className="py-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-[11px] rounded-xl shadow-lg transition"
+              >
+                {loadingPlan === 'yearly_paytm' ? 'Linking...' : 'Pay via Paytm'}
+              </button>
+              <button
+                type="button"
+                disabled={loadingPlan !== null}
+                onClick={() => handleSubscribe('yearly', 'stripe')}
+                className="py-2 bg-zinc-900 border border-zinc-800 text-white font-bold text-[11px] rounded-xl hover:bg-zinc-800 transition"
+              >
+                {loadingPlan === 'yearly_stripe' ? 'Linking...' : 'Cards / Bank'}
+              </button>
+            </div>
           </div>
+
         </div>
 
         {/* SECURITY PROMISE FOOTER */}
