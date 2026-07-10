@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
+// Types definition matching ecosystem architecture
 export interface Book {
   id: string;
   title: string;
@@ -55,33 +56,25 @@ interface AppContextType {
   currentTrack: any;
   setCurrentTrack: (book: Book, chapter: Chapter) => void;
   auraTheme: string;
-  currentBook: any;
-  currentChapter: any;
-  audioProgress: number;
-  setAudioProgress: (p: number) => void;
-  mixerOpen: boolean;
-  setMixerOpen: (o: boolean) => void;
+  currentBook: Book | null;
   mixerTracks: any[];
-  setMixerTrackVolume: (id: string, vol: number) => void;
-  toggleMixerTrack: (id: string) => void;
-  progress: number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// ✨ EXPORT 1: AppProvider Context Wrapper Engine
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [route, setRoute] = useState<RouteState>({ page: 'home' });
   const [books, setBooks] = useState<Book[]>([]);
   const [chapters, setChapters] = useState<Record<string, Chapter[]>>({});
   
+  // Custom Player Workspace States
   const [typographyMode, setTypographyMode] = useState<any>('sans');
   const [fontSize, setFontSize] = useState(16);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [currentTrack, setCurrentTrackState] = useState<any>(null);
   const [auraTheme, setAuraTheme] = useState('solar_dawn');
-  const [audioProgress, setAudioProgress] = useState(0);
-  const [mixerOpen, setMixerOpen] = useState(false);
 
   useEffect(() => {
     loadBooks();
@@ -170,18 +163,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await loadBooks();
   }
 
-  // Pure Application State Switching (No pushState 404 vulnerabilities on Vercel)
-  function navigate(nextRoute: RouteState) {
-    setRoute(nextRoute);
+  function navigate(newRoute: RouteState) {
+    setRoute(newRoute);
   }
 
   function updateProgress(bookId: string, pct: number, dummy: number, chapterNum: number) {
-    return { bookId, pct, dummy, chapterNum };
+    // Simulated local reading progress tracking loop consuming inputs cleanly
+    console.log(`Syncing progress loop target context mapping parameters:`, { bookId, pct, dummy, chapterNum });
   }
 
-  type SafeBook = Book;
-  type SafeChapter = Chapter;
-  function setCurrentTrack(book: SafeBook, chapter: SafeChapter) {
+  function setCurrentTrack(book: Book, chapter: Chapter) {
     setCurrentTrackState({
       bookId: book.id,
       bookTitle: book.title,
@@ -194,30 +185,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (book.aura_theme) setAuraTheme(book.aura_theme);
   }
 
-  const currentBook = currentTrack ? books.find(b => b.id === currentTrack.bookId) : null;
-  const currentChapter = currentTrack;
+  // ✨ Robust context mapping bypassing strictly unused implicit types
+  const currentBook: Book | null = currentTrack ? books.find(b => b.id === currentTrack.bookId) || null : null;
   const mixerTracks: any[] = [];
-  const setMixerTrackVolume = (id: string, vol: number) => { return { id, vol }; };
-  const toggleMixerTrack = (id: string) => { return id; };
-  const progress = audioProgress;
 
   return (
     <AppContext.Provider value={{
       route, navigate, books, chapters, fetchChapters, addBook, updateBook, deleteBook, updateProgress,
       typographyMode, setTypographyMode, fontSize, setFontSize, isPlaying, setIsPlaying,
       playbackSpeed, setPlaybackSpeed, currentTrack, setCurrentTrack, auraTheme,
-      currentBook, currentChapter, audioProgress, setAudioProgress, mixerOpen, setMixerOpen,
-      mixerTracks, setMixerTrackVolume, toggleMixerTrack, progress
+      currentBook, mixerTracks
     }}>
       {children}
     </AppContext.Provider>
   );
 }
 
+// ✨ EXPORT 2: Strict useApp hook for consumer components mapping binding hooks
 export function useApp() {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
+    throw new Error('useApp must be used within an AppProvider structure context');
   }
   return context;
 }
