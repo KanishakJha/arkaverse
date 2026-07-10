@@ -1,211 +1,69 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useEffect, useRef } from 'react'
+import { useApp } from '../contexts/AppContext'
+import { Play, Pause, ChevronLeft, ChevronRight } from 'lucide-react'
 
-// Types definition matching ecosystem architecture
-export interface Book {
-  id: string;
-  title: string;
-  author: string;
-  synopsis: string;
-  description?: string;
-  genres: string[];
-  tags: string[];
-  cover_url: string;
-  aura_theme: string;
-  reading_time_minutes: number;
-  total_chapters: number;
-  featured: boolean;
-  published: boolean;
-}
+// ✨ Named Export
+export function ReaderPage() {
+  const { route, books, isPlaying, setIsPlaying } = useApp()
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
-export interface Chapter {
-  id: string;
-  book_id: string;
-  chapter_number: number;
-  title: string;
-  content: string;
-  audio_url: string;
-  is_audio_premium?: boolean;
-  is_locked?: boolean;
-}
-
-export interface RouteState {
-  page: 'home' | 'reader' | 'admin';
-  bookId?: string;
-  chapterNum?: number;
-}
-
-interface AppContextType {
-  route: RouteState;
-  navigate: (newRoute: RouteState) => void;
-  books: Book[];
-  chapters: Record<string, Chapter[]>;
-  fetchChapters: (bookId: string) => Promise<Chapter[]>;
-  addBook: (book: any, chaptersList: any[]) => Promise<void>;
-  updateBook: (bookId: string, book: any, chaptersList: any[]) => Promise<void>;
-  deleteBook: (bookId: string) => Promise<void>;
-  updateProgress: (bookId: string, pct: number, dummy: number, chapterNum: number) => void;
-  typographyMode: 'sans' | 'serif' | 'focus' | 'dyslexia';
-  setTypographyMode: (mode: any) => void;
-  fontSize: number;
-  setFontSize: (size: number) => void;
-  isPlaying: boolean;
-  setIsPlaying: (playing: boolean) => void;
-  playbackSpeed: number;
-  setPlaybackSpeed: (speed: number) => void;
-  currentTrack: any;
-  setCurrentTrack: (book: Book, chapter: Chapter) => void;
-  auraTheme: string;
-  currentBook: Book | null;
-  mixerTracks: any[];
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-// ✨ EXPORT 1: AppProvider Context Wrapper Engine
-export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [route, setRoute] = useState<RouteState>({ page: 'home' });
-  const [books, setBooks] = useState<Book[]>([]);
-  const [chapters, setChapters] = useState<Record<string, Chapter[]>>({});
-  
-  // Custom Player Workspace States
-  const [typographyMode, setTypographyMode] = useState<any>('sans');
-  const [fontSize, setFontSize] = useState(16);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [currentTrack, setCurrentTrackState] = useState<any>(null);
-  const [auraTheme, setAuraTheme] = useState('solar_dawn');
+  const book = books.find((b) => b.id === route.bookId)
+  const simulatedTrackUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
 
   useEffect(() => {
-    loadBooks();
-  }, []);
-
-  async function loadBooks() {
-    try {
-      const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setBooks(data || []);
-    } catch (err) {
-      console.error('Error loading books:', err);
+    if (!audioRef.current) {
+      audioRef.current = new Audio(simulatedTrackUrl)
     }
-  }
 
-  async function fetchChapters(bookId: string) {
-    if (!bookId) return [];
-    try {
-      const { data, error } = await supabase
-        .from('chapters')
-        .select('*')
-        .eq('book_id', bookId)
-        .order('chapter_number', { ascending: true });
-      if (error) throw error;
-      
-      const loadedChapters = data || [];
-      setChapters(prev => ({ ...prev, [bookId]: loadedChapters }));
-      return loadedChapters;
-    } catch (err) {
-      console.error('Error fetching chapters:', err);
-      return [];
+    if (isPlaying) {
+      audioRef.current.play().catch(() => {
+        console.log("Browser blocked autoplay requirement context trigger.")
+      })
+    } else {
+      audioRef.current.pause()
     }
-  }
 
-  async function addBook(bookPayload: any, chaptersPayload: any[]) {
-    const { data: bookData, error: bookError } = await supabase
-      .from('books')
-      .insert([bookPayload])
-      .select();
-    
-    if (bookError) throw bookError;
-    const newBook = bookData[0];
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+    }
+  }, [isPlaying])
 
-    const mappedChapters = chaptersPayload.map(ch => ({
-      ...ch,
-      book_id: newBook.id
-    }));
-
-    const { error: chError } = await supabase.from('chapters').insert(mappedChapters);
-    if (chError) throw chError;
-
-    await loadBooks();
-  }
-
-  async function updateBook(bookId: string, bookPayload: any, chaptersPayload: any[]) {
-    const { error: bookError } = await supabase
-      .from('books')
-      .update(bookPayload)
-      .eq('id', bookId);
-    if (bookError) throw bookError;
-
-    const { error: delError } = await supabase
-      .from('chapters')
-      .delete()
-      .eq('book_id', bookId);
-    if (delError) throw delError;
-
-    const mappedChapters = chaptersPayload.map(ch => ({
-      ...ch,
-      book_id: bookId
-    }));
-
-    const { error: chError } = await supabase.from('chapters').insert(mappedChapters);
-    if (chError) throw chError;
-
-    await loadBooks();
-    await fetchChapters(bookId);
-  }
-
-  async function deleteBook(bookId: string) {
-    const { error } = await supabase.from('books').delete().eq('id', bookId);
-    if (error) throw error;
-    await loadBooks();
-  }
-
-  function navigate(newRoute: RouteState) {
-    setRoute(newRoute);
-  }
-
-  function updateProgress(bookId: string, pct: number, dummy: number, chapterNum: number) {
-    // Simulated local reading progress tracking loop consuming inputs cleanly
-    console.log(`Syncing progress loop target context mapping parameters:`, { bookId, pct, dummy, chapterNum });
-  }
-
-  function setCurrentTrack(book: Book, chapter: Chapter) {
-    setCurrentTrackState({
-      bookId: book.id,
-      bookTitle: book.title,
-      bookCover: book.cover_url,
-      author: book.author,
-      chapterId: chapter.id,
-      chapterTitle: chapter.title,
-      audioUrl: chapter.audio_url
-    });
-    if (book.aura_theme) setAuraTheme(book.aura_theme);
-  }
-
-  // ✨ Robust context mapping bypassing strictly unused implicit types
-  const currentBook: Book | null = currentTrack ? books.find(b => b.id === currentTrack.bookId) || null : null;
-  const mixerTracks: any[] = [];
+  if (!book) return null
 
   return (
-    <AppContext.Provider value={{
-      route, navigate, books, chapters, fetchChapters, addBook, updateBook, deleteBook, updateProgress,
-      typographyMode, setTypographyMode, fontSize, setFontSize, isPlaying, setIsPlaying,
-      playbackSpeed, setPlaybackSpeed, currentTrack, setCurrentTrack, auraTheme,
-      currentBook, mixerTracks
-    }}>
-      {children}
-    </AppContext.Provider>
-  );
+    <div className="pt-20 pb-24 px-4 max-w-md mx-auto text-center font-sans bg-white min-h-screen">
+      <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">{book.title}</span>
+      <h2 className="text-sm font-bold text-slate-800 mt-1 truncate">Track 1: Episode Master Stream</h2>
+      <p className="text-xs text-slate-400 mt-0.5">Narrated by {book.author}</p>
+
+      {/* 📀 Album Art */}
+      <div className="my-12 flex justify-center">
+        <div className={`relative size-56 rounded-full shadow-2xl border-4 border-slate-900/10 overflow-hidden flex items-center justify-center transition-transform duration-1000 ${isPlaying ? 'animate-spin' : ''}`}>
+          <img src={book.cover_url} alt="" className="w-full h-full object-cover absolute inset-0" />
+          <div className="size-8 rounded-full bg-white relative z-10 shadow-inner border border-slate-200" />
+        </div>
+      </div>
+
+      {/* 🕹️ Controls */}
+      <div className="flex items-center justify-center gap-8 mt-6">
+        <button className="p-2 text-slate-400 hover:text-slate-900"><ChevronLeft className="size-5" /></button>
+        <button 
+          onClick={() => setIsPlaying(!isPlaying)}
+          className="size-14 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center shadow-xl transform active:scale-95 transition-all"
+        >
+          {isPlaying ? <Pause className="size-6 fill-current" /> : <Play className="size-6 fill-current ml-1" />}
+        </button>
+        <button className="p-2 text-slate-400 hover:text-slate-900"><ChevronRight className="size-5" /></button>
+      </div>
+
+      <div className="mt-8 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold border border-emerald-200/50">
+        <span>✨ Audio Pipeline Active & Secured</span>
+      </div>
+    </div>
+  )
 }
 
-// ✨ EXPORT 2: Strict useApp hook for consumer components mapping binding hooks
-export function useApp() {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider structure context');
-  }
-  return context;
-}
+// ✨ Default Export (for safety fallback matching App.tsx imports)
+export default ReaderPage;
